@@ -1302,33 +1302,62 @@
         // Calcular estadísticas
         const stats = {
           total: data.length,
-          materias: {},
-          instructores: {},
-          sedes: {},
-          facultades: {},
-          programas: {},
-          tiposInstructor: {},
-          calificaciones: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
-          tendenciaMensual: {},
+          instructoresPorSede: { Norte: {}, Sur: {} },
+          sedesTutorias: {},
+          calificacionesPorInstructor: {},
           sumaCalificaciones: 0
         };
 
         data.forEach(item => {
-          stats.materias[item.asignatura] = (stats.materias[item.asignatura] || 0) + 1;
-          stats.instructores[item.instructor] = (stats.instructores[item.instructor] || 0) + 1;
-          stats.sedes[item.sede_tutoria] = (stats.sedes[item.sede_tutoria] || 0) + 1;
-          stats.facultades[item.facultad] = (stats.facultades[item.facultad] || 0) + 1;
-          stats.programas[item.programa] = (stats.programas[item.programa] || 0) + 1;
-          stats.tiposInstructor[item.tipo_instructor] = (stats.tiposInstructor[item.tipo_instructor] || 0) + 1;
-          stats.calificaciones[item.calificacion] = (stats.calificaciones[item.calificacion] || 0) + 1;
-          stats.sumaCalificaciones += item.calificacion;
+          // Instructores por sede
+          const sede = item.sede_tutoria;
+          const instructor = item.instructor;
+          
+          if (!stats.instructoresPorSede[sede]) {
+            stats.instructoresPorSede[sede] = {};
+          }
+          stats.instructoresPorSede[sede][instructor] = (stats.instructoresPorSede[sede][instructor] || 0) + 1;
 
-          const fecha = new Date(item.fecha);
-          const mesAnio = `${fecha.getMonth() + 1}/${fecha.getFullYear()}`;
-          stats.tendenciaMensual[mesAnio] = (stats.tendenciaMensual[mesAnio] || 0) + 1;
+          // Sedes de tutorías
+          stats.sedesTutorias[sede] = (stats.sedesTutorias[sede] || 0) + 1;
+
+          // Calificaciones por instructor
+          if (!stats.calificacionesPorInstructor[instructor]) {
+            stats.calificacionesPorInstructor[instructor] = { suma: 0, cantidad: 0 };
+          }
+          stats.calificacionesPorInstructor[instructor].suma += item.calificacion;
+          stats.calificacionesPorInstructor[instructor].cantidad += 1;
+
+          // Suma total de calificaciones
+          stats.sumaCalificaciones += item.calificacion;
         });
 
         const promedioCalificacion = (stats.sumaCalificaciones / stats.total).toFixed(2);
+
+        // Calcular promedios por instructor
+        const promediosPorInstructor = {};
+        Object.keys(stats.calificacionesPorInstructor).forEach(instructor => {
+          const info = stats.calificacionesPorInstructor[instructor];
+          promediosPorInstructor[instructor] = (info.suma / info.cantidad).toFixed(2);
+        });
+
+        // Mejor instructor por calificación
+        let mejorInstructor = { nombre: '', promedio: 0 };
+        Object.keys(promediosPorInstructor).forEach(instructor => {
+          const promedio = parseFloat(promediosPorInstructor[instructor]);
+          if (promedio > mejorInstructor.promedio) {
+            mejorInstructor = { nombre: instructor, promedio: promedio.toFixed(2) };
+          }
+        });
+
+        // Top 2 instructores por sede
+        const top2Norte = Object.entries(stats.instructoresPorSede.Norte || {})
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 2);
+        
+        const top2Sur = Object.entries(stats.instructoresPorSede.Sur || {})
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 2);
 
         // Renderizar tarjetas principales
         const grid = document.getElementById('statsGrid');
@@ -1342,75 +1371,76 @@
             <p>Calificación Promedio</p>
           </div>
           <div class="stat-card">
-            <h3>${stats.tiposInstructor['Tutor'] || 0}</h3>
-            <p>Tutorías</p>
-          </div>
-          <div class="stat-card">
-            <h3>${stats.tiposInstructor['Profesor'] || 0}</h3>
-            <p>Con Profesores</p>
+            <h3>${mejorInstructor.nombre}</h3>
+            <p>Mejor Calificación (${mejorInstructor.promedio})</p>
           </div>
         `;
 
         // Renderizar detalles
         let detalles = '';
 
-        // Distribución de calificaciones
-        detalles += '<div class="chart-container"><h3 class="chart-title">Distribución de Calificaciones</h3>';
-        Object.entries(stats.calificaciones).forEach(([cal, cant]) => {
-          const porcentaje = ((cant / stats.total) * 100).toFixed(1);
-          detalles += `<div class="list-item"><span>Calificación ${cal}</span><strong>${cant} (${porcentaje}%)</strong></div>`;
-        });
+        // Top 2 Instructores Sede Norte
+        detalles += '<div class="chart-container"><h3 class="chart-title">Top 2 Instructores - Sede Norte</h3>';
+        if (top2Norte.length > 0) {
+          top2Norte.forEach(([instructor, cantidad]) => {
+            detalles += `<div class="list-item"><span>${instructor}</span><strong>${cantidad} tutorías</strong></div>`;
+          });
+        } else {
+          detalles += '<p style="text-align: center; color: #666;">No hay datos de Sede Norte</p>';
+        }
         detalles += '</div>';
 
-        // Materias más solicitadas
-        detalles += '<div class="chart-container"><h3 class="chart-title">Materias Más Solicitadas</h3>';
-        const materiasOrdenadas = Object.entries(stats.materias).sort((a, b) => b[1] - a[1]).slice(0, 10);
-        materiasOrdenadas.forEach(([materia, cantidad]) => {
-          detalles += `<div class="list-item"><span>${materia}</span><strong>${cantidad}</strong></div>`;
-        });
-        detalles += '</div>';
-
-        // Instructores más activos
-        detalles += '<div class="chart-container"><h3 class="chart-title">Instructores Más Activos</h3>';
-        const instructoresOrdenados = Object.entries(stats.instructores).sort((a, b) => b[1] - a[1]).slice(0, 10);
-        instructoresOrdenados.forEach(([instructor, cantidad]) => {
-          detalles += `<div class="list-item"><span>${instructor}</span><strong>${cantidad} tutorías</strong></div>`;
-        });
+        // Top 2 Instructores Sede Sur
+        detalles += '<div class="chart-container"><h3 class="chart-title">Top 2 Instructores - Sede Sur</h3>';
+        if (top2Sur.length > 0) {
+          top2Sur.forEach(([instructor, cantidad]) => {
+            detalles += `<div class="list-item"><span>${instructor}</span><strong>${cantidad} tutorías</strong></div>`;
+          });
+        } else {
+          detalles += '<p style="text-align: center; color: #666;">No hay datos de Sede Sur</p>';
+        }
         detalles += '</div>';
 
         // Distribución por sedes
-        detalles += '<div class="chart-container"><h3 class="chart-title">Distribución por Sedes</h3>';
-        Object.entries(stats.sedes).forEach(([sede, cantidad]) => {
+        detalles += '<div class="chart-container"><h3 class="chart-title">Tutorías por Sede</h3>';
+        Object.entries(stats.sedesTutorias).forEach(([sede, cantidad]) => {
           const porcentaje = ((cantidad / stats.total) * 100).toFixed(1);
           detalles += `<div class="list-item"><span>Sede ${sede}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
         });
         detalles += '</div>';
 
-        // Participación por facultades
-        detalles += '<div class="chart-container"><h3 class="chart-title">Participación por Facultades</h3>';
-        const facultadesOrdenadas = Object.entries(stats.facultades).sort((a, b) => b[1] - a[1]);
-        facultadesOrdenadas.forEach(([facultad, cantidad]) => {
-          detalles += `<div class="list-item"><span>${facultad}</span><strong>${cantidad}</strong></div>`;
-        });
-        detalles += '</div>';
-
-        // Top 10 programas
-        detalles += '<div class="chart-container"><h3 class="chart-title">Top 10 Programas Académicos</h3>';
-        const programasOrdenados = Object.entries(stats.programas).sort((a, b) => b[1] - a[1]).slice(0, 10);
-        programasOrdenados.forEach(([programa, cantidad]) => {
-          detalles += `<div class="list-item"><span>${programa}</span><strong>${cantidad}</strong></div>`;
-        });
-        detalles += '</div>';
-
-        // Tendencia mensual
-        if (Object.keys(stats.tendenciaMensual).length > 0) {
-          detalles += '<div class="chart-container"><h3 class="chart-title">Tendencia Mensual</h3>';
-          const mesesOrdenados = Object.entries(stats.tendenciaMensual).sort();
-          mesesOrdenados.forEach(([mes, cantidad]) => {
-            detalles += `<div class="list-item"><span>${mes}</span><strong>${cantidad} registros</strong></div>`;
+        // Lista completa de instructores por sede
+        detalles += '<div class="chart-container"><h3 class="chart-title">Todos los Instructores - Sede Norte</h3>';
+        const instructoresNorte = Object.entries(stats.instructoresPorSede.Norte || {})
+          .sort((a, b) => b[1] - a[1]);
+        if (instructoresNorte.length > 0) {
+          instructoresNorte.forEach(([instructor, cantidad]) => {
+            const promedio = promediosPorInstructor[instructor] || 'N/A';
+            detalles += `<div class="list-item">
+              <span>${instructor}</span>
+              <strong>${cantidad} tutorías (Promedio: ${promedio})</strong>
+            </div>`;
           });
-          detalles += '</div>';
+        } else {
+          detalles += '<p style="text-align: center; color: #666;">No hay instructores en Sede Norte</p>';
         }
+        detalles += '</div>';
+
+        detalles += '<div class="chart-container"><h3 class="chart-title">Todos los Instructores - Sede Sur</h3>';
+        const instructoresSur = Object.entries(stats.instructoresPorSede.Sur || {})
+          .sort((a, b) => b[1] - a[1]);
+        if (instructoresSur.length > 0) {
+          instructoresSur.forEach(([instructor, cantidad]) => {
+            const promedio = promediosPorInstructor[instructor] || 'N/A';
+            detalles += `<div class="list-item">
+              <span>${instructor}</span>
+              <strong>${cantidad} tutorías (Promedio: ${promedio})</strong>
+            </div>`;
+          });
+        } else {
+          detalles += '<p style="text-align: center; color: #666;">No hay instructores en Sede Sur</p>';
+        }
+        detalles += '</div>';
 
         document.getElementById('detallesStats').innerHTML = detalles;
       } catch (error) {
@@ -1452,7 +1482,7 @@
           return;
         }
 
-        generarExcel(data, `PMA_${desde}_a_${hasta}`);
+        generarExcelSimplificado(data, `PMA_${desde}_a_${hasta}`);
         alert(`${data.length} registros descargados exitosamente`);
       } catch (error) {
         alert('Error al descargar datos: ' + error.message);
@@ -1472,25 +1502,99 @@
           return;
         }
 
-        generarExcel(data, 'PMA_Completo');
+        generarExcelCompleto(data, 'PMA_Completo');
         alert(`${data.length} registros descargados exitosamente`);
       } catch (error) {
         alert('Error al descargar datos: ' + error.message);
       }
     }
 
-    function generarExcel(datos, nombreArchivo) {
-      // Headers
-      const headers = ['Fecha', 'Documento', 'Nombres', 'Apellidos', 'Facultad', 'Programa', 'Semestre', 'Grupo', 
+    function generarExcelSimplificado(datos, nombreArchivo) {
+      // Headers simplificados (para descarga por rango de fechas)
+      const headers = ['Fecha', 'Hora', 'Documento', 'Nombres', 'Apellidos', 'Programa', 'Instructor', 'Asignatura', 'Tema'];
+      
+      let csv = headers.join(',') + '\n';
+      
+      datos.forEach(fila => {
+        // Convertir a hora de Colombia (UTC-5)
+        const fecha = new Date(fila.fecha);
+        const fechaColombia = new Date(fecha.getTime() - (5 * 60 * 60 * 1000));
+        
+        // Formatear fecha como DD/MM/AAAA
+        const dia = String(fechaColombia.getUTCDate()).padStart(2, '0');
+        const mes = String(fechaColombia.getUTCMonth() + 1).padStart(2, '0');
+        const anio = fechaColombia.getUTCFullYear();
+        const fechaFormateada = `${dia}/${mes}/${anio}`;
+        
+        // Formatear hora como HH:MM
+        const horas = String(fechaColombia.getUTCHours()).padStart(2, '0');
+        const minutos = String(fechaColombia.getUTCMinutes()).padStart(2, '0');
+        const horaFormateada = `${horas}:${minutos}`;
+        
+        const row = [
+          fechaFormateada,
+          horaFormateada,
+          fila.documento,
+          fila.nombres,
+          fila.apellidos,
+          fila.programa,
+          fila.instructor,
+          fila.asignatura,
+          fila.tema
+        ];
+        
+        const rowFormateada = row.map(celda => {
+          const celdaStr = String(celda);
+          if (celdaStr.includes(',') || celdaStr.includes('"') || celdaStr.includes('\n')) {
+            return '"' + celdaStr.replace(/"/g, '""') + '"';
+          }
+          return celdaStr;
+        });
+        
+        csv += rowFormateada.join(',') + '\n';
+      });
+
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      const fechaHoy = new Date().toISOString().split('T')[0];
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${nombreArchivo}_${fechaHoy}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function generarExcelCompleto(datos, nombreArchivo) {
+      // Headers completos (para descarga total)
+      const headers = ['Fecha', 'Hora', 'Documento', 'Nombres', 'Apellidos', 'Facultad', 'Programa', 'Semestre', 'Grupo', 
                       'Sede Estudiante', 'Sede Tutoría', 'Tipo Instructor', 'Instructor', 'Asignatura', 'Tema', 
                       'Calificación', 'Sugerencias'];
       
       let csv = headers.join(',') + '\n';
       
       datos.forEach(fila => {
-        const fecha = new Date(fila.fecha).toLocaleString('es-CO');
+        // Convertir a hora de Colombia (UTC-5)
+        const fecha = new Date(fila.fecha);
+        const fechaColombia = new Date(fecha.getTime() - (5 * 60 * 60 * 1000));
+        
+        // Formatear fecha como DD/MM/AAAA
+        const dia = String(fechaColombia.getUTCDate()).padStart(2, '0');
+        const mes = String(fechaColombia.getUTCMonth() + 1).padStart(2, '0');
+        const anio = fechaColombia.getUTCFullYear();
+        const fechaFormateada = `${dia}/${mes}/${anio}`;
+        
+        // Formatear hora como HH:MM
+        const horas = String(fechaColombia.getUTCHours()).padStart(2, '0');
+        const minutos = String(fechaColombia.getUTCMinutes()).padStart(2, '0');
+        const horaFormateada = `${horas}:${minutos}`;
+        
         const row = [
-          fecha,
+          fechaFormateada,
+          horaFormateada,
           fila.documento,
           fila.nombres,
           fila.apellidos,
