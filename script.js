@@ -254,11 +254,14 @@ async function registrarEstudiante(event) {
       document.getElementById('mensajeRegistro').innerHTML = '';
       
       // Mostrar modal de éxito SOLO si el registro fue exitoso
-      document.getElementById('modalExitoRegistro').classList.remove('hidden');
+      const modal = document.getElementById('modalExitoRegistro');
+      modal.style.display = 'flex';
+      modal.classList.remove('hidden');
       
       // Redirigir después de 3 segundos
       setTimeout(() => {
-        document.getElementById('modalExitoRegistro').classList.add('hidden');
+        modal.style.display = 'none';
+        modal.classList.add('hidden');
         volverInicio();
       }, 3000);
     } else {
