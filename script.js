@@ -127,7 +127,10 @@ async function cargarFacultades() {
     const select = document.getElementById('regFacultad');
     select.innerHTML = '<option value="">Seleccione una facultad</option>';
     
-    Object.keys(facultadesData).forEach(facultad => {
+    // Ordenar facultades alfabéticamente
+    const facultadesOrdenadas = Object.keys(facultadesData).sort();
+    
+    facultadesOrdenadas.forEach(facultad => {
       const option = document.createElement('option');
       option.value = facultad;
       option.textContent = facultad;
@@ -152,7 +155,10 @@ function cargarProgramas() {
   selectPrograma.innerHTML = '<option value="">Seleccione un programa</option>';
   
   const programas = facultadesData[facultad] || [];
-  programas.forEach(programa => {
+  // Ordenar programas alfabéticamente
+  const programasOrdenados = programas.sort();
+  
+  programasOrdenados.forEach(programa => {
     const option = document.createElement('option');
     option.value = programa;
     option.textContent = programa;
@@ -325,9 +331,12 @@ async function cargarInstructores() {
     }
 
     const data = await supabaseQuery(tabla);
+    
+    // Ordenar instructores alfabéticamente
+    const instructoresOrdenados = data.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
     selectInstructor.innerHTML = `<option value="">Seleccione un ${tipo.toLowerCase()}</option>`;
-    data.forEach(inst => {
+    instructoresOrdenados.forEach(inst => {
       const option = document.createElement('option');
       option.value = inst.nombre;
       option.setAttribute('data-area', inst.area);
@@ -360,7 +369,11 @@ async function cargarMaterias() {
 
     const selectMateria = document.getElementById('asignatura');
     selectMateria.innerHTML = '<option value="">Seleccione una asignatura</option>';
-    data.forEach(mat => {
+    
+    // Ordenar materias alfabéticamente
+    const materiasOrdenadas = data.sort((a, b) => a.materia.localeCompare(b.materia));
+    
+    materiasOrdenadas.forEach(mat => {
       const option = document.createElement('option');
       option.value = mat.materia;
       option.textContent = mat.materia;
@@ -387,7 +400,11 @@ async function cargarTemas() {
 
     const selectTema = document.getElementById('tema');
     selectTema.innerHTML = '<option value="">Seleccione un tema</option>';
-    data.forEach(tem => {
+    
+    // Ordenar temas alfabéticamente
+    const temasOrdenados = data.sort((a, b) => a.tema.localeCompare(b.tema));
+    
+    temasOrdenados.forEach(tem => {
       const option = document.createElement('option');
       option.value = tem.tema;
       option.textContent = tem.tema;
