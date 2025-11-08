@@ -803,8 +803,8 @@ textarea {
 
 
 .footer {
-  background-color: #FFD400; /* Amarillo brillante */
-  color: #004C8C; /* Azul oscuro */
+  
+  color: #ffffff; /* Azul oscuro */
   text-align: center;
   padding: 25px 10px;
   font-family: "Poppins", Arial, sans-serif;
