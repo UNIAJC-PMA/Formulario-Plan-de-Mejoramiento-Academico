@@ -74,6 +74,18 @@ function mostrarLoginAdmin() {
   document.getElementById('mensajeAdminLogin').innerHTML = '';
 }
 
+function toggleHorarios() {
+  const contenedor = document.getElementById('contenedorHorarios');
+  contenedor.classList.toggle('hidden');
+  
+  // Si se cierra el contenedor, cerrar todos los horarios internos
+  if (contenedor.classList.contains('hidden')) {
+    document.getElementById('horarioNorte').classList.add('hidden');
+    document.getElementById('horarioSur').classList.add('hidden');
+    document.getElementById('horarioVirtual').classList.add('hidden');
+  }
+}
+
 function toggleHorario(sede) {
   // Ocultar todos los horarios
   document.getElementById('horarioNorte').classList.add('hidden');
@@ -98,7 +110,13 @@ function volverInicio() {
   document.getElementById('btnContinuar').classList.remove('hidden');
   document.getElementById('btnConfirmarRegistro').classList.add('hidden');
   document.getElementById('confirmacionDatos').classList.add('hidden');
+  // Cerrar horarios
+  document.getElementById('contenedorHorarios').classList.add('hidden');
+  document.getElementById('horarioNorte').classList.add('hidden');
+  document.getElementById('horarioSur').classList.add('hidden');
+  document.getElementById('horarioVirtual').classList.add('hidden');
 }
+
 
 function limpiarFormularios() {
   document.getElementById('formRegistro').reset();
@@ -626,12 +644,10 @@ async function guardarFormulario(event) {
     ? document.getElementById('tituloCurso').value.toUpperCase() 
     : null;
   
-  // OBTENER FECHA Y HORA EN FORMATO COLOMBIA (UTC-5)
+// OBTENER FECHA Y HORA EN FORMATO COLOMBIA (UTC-5)
   const ahora = new Date();
-  const offsetColombia = -5 * 60; // Colombia es UTC-5
-  const offsetLocal = ahora.getTimezoneOffset();
-  const diferencia = offsetColombia - offsetLocal;
-  const fechaColombia = new Date(ahora.getTime() + diferencia * 60000);
+  // Ajustar a hora de Colombia (UTC-5)
+  const fechaColombia = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
   const fechaISO = fechaColombia.toISOString();
   
   const datos = {
