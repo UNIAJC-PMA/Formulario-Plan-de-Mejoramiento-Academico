@@ -539,6 +539,21 @@ function toggleSugerencias() {
   }
 }
 
+function toggleTituloCurso() {
+  const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
+  const grupoTituloCurso = document.getElementById('grupoTituloCurso');
+  const inputTituloCurso = document.getElementById('tituloCurso');
+  
+  if (tipoAcompanamiento === 'Curso y/o capacitación') {
+    grupoTituloCurso.classList.remove('hidden');
+    inputTituloCurso.required = true;
+  } else {
+    grupoTituloCurso.classList.add('hidden');
+    inputTituloCurso.required = false;
+    inputTituloCurso.value = '';
+  }
+}
+
 // ===================================
 // ACTUALIZAR BOTÓN CERRAR SESIÓN
 // ===================================
@@ -606,6 +621,11 @@ async function guardarFormulario(event) {
 
   const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
   
+  const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
+  const tituloCurso = tipoAcompanamiento === 'Curso y/o capacitación' 
+    ? document.getElementById('tituloCurso').value.toUpperCase() 
+    : null;
+  
   const datos = {
     documento: datosEstudiante.documento,
     nombres: datosEstudiante.nombres,
@@ -614,6 +634,8 @@ async function guardarFormulario(event) {
     programa: datosEstudiante.programa,
     semestre: parseInt(document.getElementById('semestre').value),
     grupo: document.getElementById('grupo').value.toUpperCase(),
+    tipo_acompanamiento: tipoAcompanamiento,
+    titulo_curso: tituloCurso,
     sede_estudiante: datosEstudiante.sede,
     sede_tutoria: document.getElementById('sedeTutoria').value,
     tipo_instructor: document.getElementById('tipoInstructor').value,
@@ -637,6 +659,7 @@ async function guardarFormulario(event) {
     
     // Limpiar formulario
     document.getElementById('formTutoria').reset();
+    document.getElementById('grupoTituloCurso').classList.add('hidden');
     document.getElementById('grupoInstructor').classList.add('hidden');
     document.getElementById('grupoMateria').classList.add('hidden');
     document.getElementById('grupoTema').classList.add('hidden');
@@ -916,7 +939,7 @@ async function descargarTodo() {
 }
 
 function generarExcelSimplificado(datos, nombreArchivo) {
-  const headers = ['Fecha', 'Hora', 'Documento', 'Nombres', 'Apellidos', 'Programa', 'Instructor', 'Asignatura', 'Tema'];
+  const headers = ['Fecha', 'Hora', 'Documento', 'Nombres', 'Apellidos', 'Programa', 'Tipo Acompañamiento', 'Título Curso', 'Instructor', 'Asignatura', 'Tema'];
   
   let csv = headers.join(',') + '\n';
   
@@ -934,7 +957,7 @@ function generarExcelSimplificado(datos, nombreArchivo) {
     // Formatear hora como HH:MM
     const horas = String(fechaColombia.getUTCHours()).padStart(2, '0');
     const minutos = String(fechaColombia.getUTCMinutes()).padStart(2, '0');
-    const horaFormateada = `${horas}:${minutos}`;
+    const horaFormateada =`${horas}:${minutos}`;
     
     const row = [
       fechaFormateada,
@@ -943,6 +966,8 @@ function generarExcelSimplificado(datos, nombreArchivo) {
       fila.nombres,
       fila.apellidos,
       fila.programa,
+      fila.tipo_acompanamiento || 'Tutoría',
+      fila.titulo_curso || '',
       fila.instructor,
       fila.asignatura,
       fila.tema
@@ -975,7 +1000,7 @@ function generarExcelSimplificado(datos, nombreArchivo) {
 
 function generarExcelCompleto(datos, nombreArchivo) {
   const headers = ['Fecha', 'Hora', 'Documento', 'Nombres', 'Apellidos', 'Facultad', 'Programa', 'Semestre', 'Grupo', 
-                  'Sede Estudiante', 'Sede Tutoría', 'Tipo Instructor', 'Instructor', 'Asignatura', 'Tema', 
+                  'Tipo Acompañamiento', 'Título Curso', 'Sede Estudiante', 'Sede Tutoría', 'Tipo Instructor', 'Instructor', 'Asignatura', 'Tema', 
                   'Calificación', 'Sugerencias'];
   
   let csv = headers.join(',') + '\n';
@@ -1006,6 +1031,8 @@ function generarExcelCompleto(datos, nombreArchivo) {
       fila.programa,
       fila.semestre,
       fila.grupo,
+      fila.tipo_acompanamiento || 'Tutoría',
+      fila.titulo_curso || '',
       fila.sede_estudiante || '',
       fila.sede_tutoria,
       fila.tipo_instructor,
