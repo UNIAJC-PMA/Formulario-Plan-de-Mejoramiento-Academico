@@ -692,31 +692,41 @@ function mostrarModalConfirmacion(titulo, mensaje, callbackConfirmar, callbackCa
 async function guardarFormulario(event) {
   event.preventDefault();
   
-  // Validar que se haya seleccionado una calificación
+  // ====== VALIDAR CALIFICACIÓN PRIMERO ======
   const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
   
   if (!calificacionRadio) {
-    mostrarMensaje('mensajeFormulario', 'Por favor seleccione una calificación para la tutoría', 'error');
+    mostrarMensaje('mensajeFormulario', '⚠️ Por favor seleccione una calificación para la tutoría (del 1 al 5)', 'error');
     
-    // Desplazar suavemente hacia la sección de calificación
+    // Esperar un momento antes de hacer scroll
     setTimeout(() => {
       const grupoCalificacion = document.getElementById('grupoCalificacion');
-      grupoCalificacion.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      
-      // Resaltar temporalmente la sección
-      grupoCalificacion.style.background = '#fff3cd';
-      grupoCalificacion.style.padding = '15px';
-      grupoCalificacion.style.borderRadius = '8px';
-      grupoCalificacion.style.transition = 'all 0.3s ease';
-      
-      setTimeout(() => {
-        grupoCalificacion.style.background = '';
-        grupoCalificacion.style.padding = '';
-      }, 2000);
-    }, 100);
+      if (grupoCalificacion) {
+        // Scroll suave hacia la calificación
+        grupoCalificacion.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        
+        // Resaltar temporalmente con animación
+        grupoCalificacion.style.background = '#fff3cd';
+        grupoCalificacion.style.padding = '20px';
+        grupoCalificacion.style.borderRadius = '8px';
+        grupoCalificacion.style.border = '3px solid #ffc107';
+        grupoCalificacion.style.transition = 'all 0.3s ease';
+        
+        // Quitar el resaltado después de 3 segundos
+        setTimeout(() => {
+          grupoCalificacion.style.background = '';
+          grupoCalificacion.style.padding = '';
+          grupoCalificacion.style.border = '';
+        }, 3000);
+      }
+    }, 200);
     
-    return;
+    return; // DETENER aquí si no hay calificación
   }
+  // ====== FIN VALIDACIÓN CALIFICACIÓN ======
   
   mostrarCargando('mensajeFormulario');
 
@@ -724,15 +734,23 @@ async function guardarFormulario(event) {
   if (tema === 'Otro') {
     tema = document.getElementById('otroTema').value;
   }
-  
+
   const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
   const tituloCurso = tipoAcompanamiento === 'Curso y/o capacitación' 
     ? document.getElementById('tituloCurso').value.toUpperCase() 
     : null;
   
+  // ====== FORMATO FECHA COLOMBIA ======
   const ahora = new Date();
-  const fechaColombia = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+  
+  // Obtener fecha y hora en zona horaria de Colombia (UTC-5)
+  const offsetColombia = -5 * 60; // UTC-5 en minutos
+  const offsetLocal = ahora.getTimezoneOffset();
+  const diferencia = (offsetLocal - offsetColombia) * 60 * 1000;
+  
+  const fechaColombia = new Date(ahora.getTime() - diferencia);
   const fechaISO = fechaColombia.toISOString();
+  // ====== FIN FORMATO FECHA ======
   
   const datos = {
     documento: datosEstudiante.documento,
@@ -791,6 +809,19 @@ function cerrarSesion() {
   datosEstudiante = null;
   instructorActual = null;
   formularioEnviandose = false;
+  
+  // ====== REINICIAR BARRA DE PROGRESO ======
+  document.querySelectorAll('.progress-step').forEach(step => {
+    step.classList.remove('active', 'completed');
+  });
+  
+  // Opcional: poner el primer paso como activo nuevamente
+  const primerPaso = document.getElementById('step1');
+  if (primerPaso) {
+    primerPaso.classList.add('active');
+  }
+  // ====== FIN REINICIO PROGRESO ======
+  
   volverInicio();
 }
 
