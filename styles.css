@@ -345,6 +345,17 @@ textarea {
   box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3);
 }
 
+/* Botón de enviar formulario en verde */
+#btnEnviar {
+  background: #28a745;
+}
+
+#btnEnviar:hover {
+  background: #218838;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+
 .btn:active {
   transform: translateY(1px);
 }
@@ -802,26 +813,74 @@ textarea {
    =================================== */
 @media (max-width: 768px) {
   body {
-    padding: 10px;
+    padding: 8px;
   }
 
   .container {
-    padding: 20px 15px;
+    padding: 20px 12px;
+    margin: 0 auto;
+    max-width: 95%;
   }
-
-
-
 
   .section-title {
     font-size: 18px;
+    margin-bottom: 15px;
+  }
+
+  .texto-bienvenida,
+  .texto-login {
+    font-size: 14px;
+    margin-bottom: 15px;
+  }
+
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  label {
+    font-size: 13px;
+    margin-bottom: 5px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .btn {
+    padding: 12px;
+    font-size: 14px;
   }
 
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 15px 10px;
+  }
+
+  .stat-card h3 {
+    font-size: 24px;
+  }
+
+  .stat-card p {
+    font-size: 10px;
   }
 
   .admin-tabs {
     overflow-x: auto;
+    gap: 5px;
+  }
+
+  .admin-tab {
+    padding: 10px 15px;
+    font-size: 13px;
   }
 
   .confirmation-label {
@@ -832,9 +891,81 @@ textarea {
   .confirmation-value {
     font-size: 13px;
   }
+
+  .confirmation-box {
+    padding: 15px;
+  }
+
+  .alert-box {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .chart-container {
+    padding: 15px;
+  }
+
+  .list-item {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .horario-info {
+    padding: 15px;
+  }
+
+  .horario-bloque {
+    padding: 12px;
+  }
+
+  .botones-sedes {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn-sede {
+    min-width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
+  body {
+    padding: 5px;
+  }
+
+  .container {
+    padding: 15px 10px;
+    max-width: 98%;
+    margin: 0 auto;
+  }
+
+  .section-title {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .form-group {
+    margin-bottom: 12px;
+  }
+
+  label {
+    font-size: 12px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  .btn {
+    padding: 10px;
+    font-size: 13px;
+  }
+
   .rating {
     gap: 6px;
   }
@@ -844,9 +975,23 @@ textarea {
     height: 45px;
     font-size: 14px;
   }
-  
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 12px 8px;
+  }
+
+  .stat-card h3 {
+    font-size: 20px;
+  }
+
   .modal-success {
-    padding: 40px 30px;
+    padding: 35px 25px;
+    width: 95%;
   }
   
   .success-icon {
@@ -857,22 +1002,61 @@ textarea {
   }
   
   .modal-success h2 {
-    font-size: 22px;
+    font-size: 20px;
+  }
+  
+  .modal-success p {
+    font-size: 14px;
   }
   
   .modal-confirmacion {
-    padding: 35px 25px;
+    padding: 30px 20px;
+    width: 95%;
   }
   
   .modal-confirmacion h2 {
-    font-size: 20px;
+    font-size: 18px;
+  }
+
+  .modal-confirmacion p {
+    font-size: 14px;
+  }
+
+  .confirmation-box {
+    padding: 12px;
+  }
+
+  .confirmation-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+
+  .confirmation-label {
+    min-width: auto;
+    font-size: 12px;
+  }
+
+  .confirmation-value {
+    font-size: 12px;
+  }
+
+  .alert-box {
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  .logo-footer img {
+    max-width: 120px;
+  }
+
+  .logo-footer p {
+    font-size: 11px;
   }
 }
 
-
 .footer {
-  
-  color: #ffffff; /* Azul oscuro */
+  color: #ffffff;
   text-align: center;
   padding: 25px 10px;
   font-family: "Poppins", Arial, sans-serif;
@@ -898,5 +1082,5 @@ textarea {
 }
 
 .footer-content a:hover {
-  color: #002E5D; /* Azul más oscuro al pasar el cursor */
+  color: #002E5D;
 }

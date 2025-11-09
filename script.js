@@ -691,21 +691,45 @@ function mostrarModalConfirmacion(titulo, mensaje, callbackConfirmar, callbackCa
 // ===================================
 async function guardarFormulario(event) {
   event.preventDefault();
+  
+  // Validar que se haya seleccionado una calificación
+  const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
+  
+  if (!calificacionRadio) {
+    mostrarMensaje('mensajeFormulario', 'Por favor seleccione una calificación para la tutoría', 'error');
+    
+    // Desplazar suavemente hacia la sección de calificación
+    setTimeout(() => {
+      const grupoCalificacion = document.getElementById('grupoCalificacion');
+      grupoCalificacion.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Resaltar temporalmente la sección
+      grupoCalificacion.style.background = '#fff3cd';
+      grupoCalificacion.style.padding = '15px';
+      grupoCalificacion.style.borderRadius = '8px';
+      grupoCalificacion.style.transition = 'all 0.3s ease';
+      
+      setTimeout(() => {
+        grupoCalificacion.style.background = '';
+        grupoCalificacion.style.padding = '';
+      }, 2000);
+    }, 100);
+    
+    return;
+  }
+  
   mostrarCargando('mensajeFormulario');
 
   let tema = document.getElementById('tema').value;
   if (tema === 'Otro') {
     tema = document.getElementById('otroTema').value;
   }
-
-  const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
   
   const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
   const tituloCurso = tipoAcompanamiento === 'Curso y/o capacitación' 
     ? document.getElementById('tituloCurso').value.toUpperCase() 
     : null;
   
-    
 // ====== FORMATO FECHA COLOMBIA ======
   const ahora = new Date();
   
@@ -735,7 +759,7 @@ async function guardarFormulario(event) {
     asignatura: document.getElementById('asignatura').value,
     tema: tema,
     motivo_consulta: document.getElementById('motivoConsulta').value,
-    calificacion: parseInt(calificacionRadio ? calificacionRadio.value : '0'),
+    calificacion: parseInt(calificacionRadio.value),
     sugerencias: document.getElementById('sugerencias').value || 'Ninguna',
     fecha: fechaISO
   };
@@ -769,6 +793,7 @@ async function guardarFormulario(event) {
     mostrarMensaje('mensajeFormulario', 'Error al guardar: ' + error.message, 'error');
   }
 }
+
 
 function cerrarSesion() {
   datosEstudiante = null;
@@ -1035,18 +1060,25 @@ function generarExcelSimplificado(datos, nombreArchivo) {
   let csv = headers.join(',') + '\n';
   
   datos.forEach(fila => {
+    // ====== FORMATO FECHA COLOMBIA ======
     const fechaUTC = new Date(fila.fecha);
+    
+    // Ajustar a zona horaria Colombia (UTC-5)
     const fechaColombia = new Date(fechaUTC.getTime() - (5 * 60 * 60 * 1000));
     
+    // Formatear fecha DD/MM/YYYY
     const dia = String(fechaColombia.getUTCDate()).padStart(2, '0');
     const mes = String(fechaColombia.getUTCMonth() + 1).padStart(2, '0');
     const anio = fechaColombia.getUTCFullYear();
     const fechaFormateada = `${dia}/${mes}/${anio}`;
     
+    // Formatear hora HH:MM (formato 24 horas)
     const horas = String(fechaColombia.getUTCHours()).padStart(2, '0');
     const minutos = String(fechaColombia.getUTCMinutes()).padStart(2, '0');
-    const horaFormateada =`${horas}:${minutos}`;
-    
+    const horaFormateada = `${horas}:${minutos}`;
+    // ====== FIN ======
+
+
     const row = [
       fechaFormateada,
       horaFormateada,
@@ -1092,17 +1124,24 @@ function generarExcelCompleto(datos, nombreArchivo) {
   let csv = headers.join(',') + '\n';
   
   datos.forEach(fila => {
+    // ====== FORMATO FECHA COLOMBIA ======
     const fechaUTC = new Date(fila.fecha);
+    
+    // Ajustar a zona horaria Colombia (UTC-5)
     const fechaColombia = new Date(fechaUTC.getTime() - (5 * 60 * 60 * 1000));
     
+    // Formatear fecha DD/MM/YYYY
     const dia = String(fechaColombia.getUTCDate()).padStart(2, '0');
     const mes = String(fechaColombia.getUTCMonth() + 1).padStart(2, '0');
     const anio = fechaColombia.getUTCFullYear();
     const fechaFormateada = `${dia}/${mes}/${anio}`;
     
+    // Formatear hora HH:MM (formato 24 horas)
     const horas = String(fechaColombia.getUTCHours()).padStart(2, '0');
     const minutos = String(fechaColombia.getUTCMinutes()).padStart(2, '0');
     const horaFormateada = `${horas}:${minutos}`;
+    // ====== FIN ======
+
     
     const row = [
       fechaFormateada,
