@@ -518,6 +518,7 @@ async function cargarTemas() {
     optionOtro.textContent = 'Otro: ¿Cuál?';
     selectTema.appendChild(optionOtro);
 
+    document.getElementById('grupoMotivo').classList.remove('hidden');
     document.getElementById('grupoCalificacion').classList.remove('hidden');
     document.getElementById('grupoSugerencias').classList.remove('hidden');
     document.getElementById('btnEnviar').classList.remove('hidden');
@@ -667,6 +668,7 @@ async function guardarFormulario(event) {
     instructor: document.getElementById('instructor').value,
     asignatura: document.getElementById('asignatura').value,
     tema: tema,
+    motivo_consulta: document.getElementById('motivoConsulta').value,
     calificacion: parseInt(calificacionRadio ? calificacionRadio.value : '0'),
     sugerencias: document.getElementById('sugerencias').value || 'Ninguna',
     fecha: fechaISO
@@ -690,6 +692,7 @@ async function guardarFormulario(event) {
     document.getElementById('grupoMateria').classList.add('hidden');
     document.getElementById('grupoTema').classList.add('hidden');
     document.getElementById('grupoCalificacion').classList.add('hidden');
+    document.getElementById('grupoMotivo').classList.add('hidden');
     document.getElementById('grupoSugerencias').classList.add('hidden');
     document.getElementById('btnEnviar').classList.add('hidden');
     formularioEnviandose = false;
@@ -965,7 +968,7 @@ async function descargarTodo() {
 }
 
 function generarExcelSimplificado(datos, nombreArchivo) {
-  const headers = ['Fecha', 'Hora', 'Documento', 'Nombres', 'Apellidos', 'Programa', 'Tipo Acompañamiento', 'Título Curso', 'Instructor', 'Asignatura', 'Tema'];
+  const headers = ['Fecha', 'Hora', 'Documento', 'Nombres', 'Apellidos', 'Programa', 'Tipo Acompañamiento', 'Título Curso', 'Instructor', 'Asignatura', 'Tema', 'Motivo Consulta'];
   
   let csv = headers.join(',') + '\n';
   
@@ -996,7 +999,8 @@ function generarExcelSimplificado(datos, nombreArchivo) {
       fila.titulo_curso || '',
       fila.instructor,
       fila.asignatura,
-      fila.tema
+      fila.tema,
+      fila.motivo_consulta || ''
     ];
     
     const rowFormateada = row.map(celda => {
@@ -1027,7 +1031,7 @@ function generarExcelSimplificado(datos, nombreArchivo) {
 function generarExcelCompleto(datos, nombreArchivo) {
   const headers = ['Fecha', 'Hora', 'Documento', 'Nombres', 'Apellidos', 'Facultad', 'Programa', 'Semestre', 'Grupo', 
                   'Tipo Acompañamiento', 'Título Curso', 'Sede Estudiante', 'Sede Tutoría', 'Tipo Instructor', 'Instructor', 'Asignatura', 'Tema', 
-                  'Calificación', 'Sugerencias'];
+                  'Motivo Consulta', 'Calificación', 'Sugerencias'];
   
   let csv = headers.join(',') + '\n';
   
@@ -1065,6 +1069,7 @@ function generarExcelCompleto(datos, nombreArchivo) {
       fila.instructor,
       fila.asignatura,
       fila.tema,
+      fila.motivo_consulta || '',
       fila.calificacion,
       fila.sugerencias || ''
     ];
