@@ -666,7 +666,7 @@ async function guardarFormulario(event) {
     }
     
     // Mostrar mensaje inmediatamente
-    mostrarMensaje('mensajeFormulario', '⚠️ Por favor, seleccione una calificación para la tutoría (1-5)', 'error');
+    mostrarMensaje('mensajeFormulario', 'seleccione una calificación para la tutoría', 'error');
     
     // Hacer scroll suave
     setTimeout(() => {
@@ -681,9 +681,9 @@ async function guardarFormulario(event) {
       grupoCalificacion.style.background = '#fff3cd';
       grupoCalificacion.style.padding = '20px';
       grupoCalificacion.style.borderRadius = '8px';
-      grupoCalificacion.style.border = '3px solid #ffc107';
+      grupoCalificacion.style.border = '3px solid #ffffffff';
       grupoCalificacion.style.transition = 'all 0.3s';
-      grupoCalificacion.style.boxShadow = '0 0 20px rgba(255, 193, 7, 0.5)';
+      grupoCalificacion.style.boxShadow = '0 0 20px rgba(255, 255, 255, 0.5)';
       
       // Quitar resaltado después de 5 segundos
       setTimeout(() => {
