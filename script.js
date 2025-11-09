@@ -7,8 +7,24 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // Variables globales
 let datosEstudiante = null;
 let instructorActual = null;
-let facultadesData = {};
 let formularioEnviandose = false;
+
+// ===================================
+// CACHE DE DATOS PRECARGADOS
+// ===================================
+let datosCache = {
+  facultadesCarreras: [],
+  tutoresNorte: [],
+  tutoresSur: [],
+  profesoresNorte: [],
+  profesoresSur: [],
+  materias: [],
+  temas: [],
+  cargado: false
+};
+
+// Objeto procesado para búsquedas rápidas
+let facultadesData = {};
 
 // ===================================
 // FUNCIONES DE SUPABASE
@@ -47,12 +63,81 @@ async function supabaseInsert(table, data) {
 }
 
 // ===================================
+// PRECARGA DE DATOS (NUEVA FUNCIÓN)
+// ===================================
+async function precargarDatosEstaticos() {
+  if (datosCache.cargado) return; // Ya están cargados
+  
+  try {
+    console.log('Precargando datos estáticos...');
+    
+    // Realizar todas las consultas en paralelo
+    const [
+      facultadesCarreras,
+      tutoresNorte,
+      tutoresSur,
+      profesoresNorte,
+      profesoresSur,
+      materias,
+      temas
+    ] = await Promise.all([
+      supabaseQuery('facultades_carreras'),
+      supabaseQuery('tutores_norte'),
+      supabaseQuery('tutores_sur'),
+      supabaseQuery('profesores_norte'),
+      supabaseQuery('profesores_sur'),
+      supabaseQuery('materias'),
+      supabaseQuery('temas')
+    ]);
+    
+    // Guardar en cache
+    datosCache = {
+      facultadesCarreras,
+      tutoresNorte,
+      tutoresSur,
+      profesoresNorte,
+      profesoresSur,
+      materias,
+      temas,
+      cargado: true
+    };
+    
+    // Procesar facultades para búsqueda rápida
+    procesarFacultadesData();
+    
+    console.log('Datos precargados exitosamente:', {
+      facultades: facultadesCarreras.length,
+      tutoresNorte: tutoresNorte.length,
+      tutoresSur: tutoresSur.length,
+      profesoresNorte: profesoresNorte.length,
+      profesoresSur: profesoresSur.length,
+      materias: materias.length,
+      temas: temas.length
+    });
+    
+  } catch (error) {
+    console.error('Error precargando datos:', error);
+    datosCache.cargado = false;
+  }
+}
+
+function procesarFacultadesData() {
+  facultadesData = {};
+  
+  datosCache.facultadesCarreras.forEach(item => {
+    if (!facultadesData[item.facultad]) {
+      facultadesData[item.facultad] = [];
+    }
+    facultadesData[item.facultad].push(item.programa);
+  });
+}
+
+// ===================================
 // FUNCIONES DE NAVEGACIÓN
 // ===================================
 function mostrarPantalla(id) {
   document.querySelectorAll('.container > div').forEach(div => div.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
-  // Scroll suave al inicio del contenedor
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -61,11 +146,19 @@ function mostrarLogin() {
   document.getElementById('mensajeLogin').innerHTML = '';
 }
 
-function mostrarRegistro() {
+async function mostrarRegistro() {
   mostrarPantalla('pantallaRegistro');
   document.getElementById('mensajeRegistro').innerHTML = '';
   document.getElementById('confirmacionDatos').classList.add('hidden');
   document.getElementById('btnConfirmarRegistro').classList.add('hidden');
+  
+  // Precargar datos si no están cargados
+  if (!datosCache.cargado) {
+    mostrarCargando('mensajeRegistro');
+    await precargarDatosEstaticos();
+    document.getElementById('mensajeRegistro').innerHTML = '';
+  }
+  
   cargarFacultades();
 }
 
@@ -78,7 +171,6 @@ function toggleHorarios() {
   const contenedor = document.getElementById('contenedorHorarios');
   contenedor.classList.toggle('hidden');
   
-  // Si se cierra el contenedor, cerrar todos los horarios internos
   if (contenedor.classList.contains('hidden')) {
     document.getElementById('horarioNorte').classList.add('hidden');
     document.getElementById('horarioSur').classList.add('hidden');
@@ -87,12 +179,10 @@ function toggleHorarios() {
 }
 
 function toggleHorario(sede) {
-  // Ocultar todos los horarios
   document.getElementById('horarioNorte').classList.add('hidden');
   document.getElementById('horarioSur').classList.add('hidden');
   document.getElementById('horarioVirtual').classList.add('hidden');
   
-  // Mostrar el seleccionado
   if (sede === 'norte') {
     document.getElementById('horarioNorte').classList.toggle('hidden');
   } else if (sede === 'sur') {
@@ -106,17 +196,14 @@ function volverInicio() {
   mostrarPantalla('pantallaInicio');
   limpiarFormularios();
   formularioEnviandose = false;
-  // Restaurar el botón continuar y ocultar confirmación
   document.getElementById('btnContinuar').classList.remove('hidden');
   document.getElementById('btnConfirmarRegistro').classList.add('hidden');
   document.getElementById('confirmacionDatos').classList.add('hidden');
-  // Cerrar horarios
   document.getElementById('contenedorHorarios').classList.add('hidden');
   document.getElementById('horarioNorte').classList.add('hidden');
   document.getElementById('horarioSur').classList.add('hidden');
   document.getElementById('horarioVirtual').classList.add('hidden');
 }
-
 
 function limpiarFormularios() {
   document.getElementById('formRegistro').reset();
@@ -129,7 +216,6 @@ function mostrarMensaje(elementId, mensaje, tipo) {
   const elemento = document.getElementById(elementId);
   elemento.innerHTML = `<div class="mensaje ${tipo}">${mensaje}</div>`;
   
-  // Scroll suave hacia el mensaje
   setTimeout(() => {
     elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 100);
@@ -141,7 +227,6 @@ function mostrarCargando(elementId) {
   const elemento = document.getElementById(elementId);
   elemento.innerHTML = '<div class="loader"></div>';
   
-  // Scroll suave hacia el loader
   setTimeout(() => {
     elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 100);
@@ -163,37 +248,22 @@ function validarDocumento(documento) {
   return { valido: true };
 }
 
-
 // ===================================
-// CARGAR FACULTADES Y PROGRAMAS
+// CARGAR FACULTADES Y PROGRAMAS (OPTIMIZADO)
 // ===================================
-async function cargarFacultades() {
-  try {
-    const data = await supabaseQuery('facultades_carreras');
-    facultadesData = {};
-    
-    data.forEach(item => {
-      if (!facultadesData[item.facultad]) {
-        facultadesData[item.facultad] = [];
-      }
-      facultadesData[item.facultad].push(item.programa);
-    });
-
-    const select = document.getElementById('regFacultad');
-    select.innerHTML = '<option value="">Seleccione una facultad</option>';
-    
-    // Ordenar facultades alfabéticamente
-    const facultadesOrdenadas = Object.keys(facultadesData).sort();
-    
-    facultadesOrdenadas.forEach(facultad => {
-      const option = document.createElement('option');
-      option.value = facultad;
-      option.textContent = facultad;
-      select.appendChild(option);
-    });
-  } catch (error) {
-    console.error('Error cargando facultades:', error);
-  }
+function cargarFacultades() {
+  const select = document.getElementById('regFacultad');
+  select.innerHTML = '<option value="">Seleccione una facultad</option>';
+  
+  // Ordenar facultades alfabéticamente
+  const facultadesOrdenadas = Object.keys(facultadesData).sort();
+  
+  facultadesOrdenadas.forEach(facultad => {
+    const option = document.createElement('option');
+    option.value = facultad;
+    option.textContent = facultad;
+    select.appendChild(option);
+  });
 }
 
 function cargarProgramas() {
@@ -210,7 +280,6 @@ function cargarProgramas() {
   selectPrograma.innerHTML = '<option value="">Seleccione un programa</option>';
   
   const programas = facultadesData[facultad] || [];
-  // Ordenar programas alfabéticamente
   const programasOrdenados = programas.sort();
   
   programasOrdenados.forEach(programa => {
@@ -227,7 +296,6 @@ function cargarProgramas() {
 function mostrarConfirmacion() {
   const doc = document.getElementById('regDocumento').value;
   
-  // Validar documento
   const validacion = validarDocumento(doc);
   if (!validacion.valido) {
     mostrarMensaje('mensajeRegistro', validacion.mensaje, 'error');
@@ -287,7 +355,6 @@ async function registrarEstudiante(event) {
   
   const doc = document.getElementById('regDocumento').value;
   
-  // Validar documento antes de enviar
   const validacion = validarDocumento(doc);
   if (!validacion.valido) {
     mostrarMensaje('mensajeRegistro', validacion.mensaje, 'error');
@@ -295,7 +362,6 @@ async function registrarEstudiante(event) {
   }
   
   mostrarCargando('mensajeRegistro');
-
 
   const datos = {
     documento: doc,
@@ -320,17 +386,13 @@ async function registrarEstudiante(event) {
 
     const resultado = await supabaseInsert('estudiantes', datos);
     
-    // Verificar que el registro fue exitoso
     if (resultado && resultado.length > 0) {
-      // Limpiar mensaje de carga
       document.getElementById('mensajeRegistro').innerHTML = '';
       
-      // Mostrar modal de éxito SOLO si el registro fue exitoso
       const modal = document.getElementById('modalExitoRegistro');
       modal.style.display = 'flex';
       modal.classList.remove('hidden');
       
-      // Redirigir después de 3 segundos
       setTimeout(() => {
         modal.style.display = 'none';
         modal.classList.add('hidden');
@@ -360,7 +422,6 @@ async function iniciarSesion(event) {
   
   const documento = document.getElementById('loginDocumento').value;
   
-  // Validar documento
   const validacion = validarDocumento(documento);
   if (!validacion.valido) {
     mostrarMensaje('mensajeLogin', validacion.mensaje, 'error');
@@ -368,6 +429,11 @@ async function iniciarSesion(event) {
   }
   
   mostrarCargando('mensajeLogin');
+
+  // Precargar datos si no están cargados
+  if (!datosCache.cargado) {
+    await precargarDatosEstaticos();
+  }
 
   try {
     const data = await supabaseQuery('estudiantes', {
@@ -405,55 +471,48 @@ async function iniciarSesion(event) {
 }
 
 // ===================================
-// CARGAR INSTRUCTORES
+// CARGAR INSTRUCTORES (OPTIMIZADO)
 // ===================================
-async function cargarInstructores() {
+function cargarInstructores() {
   const sede = document.getElementById('sedeTutoria').value;
   const tipo = document.getElementById('tipoInstructor').value;
 
   if (!sede || !tipo) return;
 
   const selectInstructor = document.getElementById('instructor');
-  selectInstructor.innerHTML = '<option value="">Cargando...</option>';
   
   document.getElementById('grupoInstructor').classList.remove('hidden');
   document.getElementById('labelInstructor').textContent = tipo + ' *';
 
-  try {
-    // Determinar la tabla según tipo y sede
-    let tabla = '';
-    if (tipo === 'Tutor' && sede === 'Norte') {
-      tabla = 'tutores_norte';
-    } else if (tipo === 'Tutor' && sede === 'Sur') {
-      tabla = 'tutores_sur';
-    } else if (tipo === 'Profesor' && sede === 'Norte') {
-      tabla = 'profesores_norte';
-    } else if (tipo === 'Profesor' && sede === 'Sur') {
-      tabla = 'profesores_sur';
-    }
-
-    const data = await supabaseQuery(tabla);
-    
-    // Ordenar instructores alfabéticamente
-    const instructoresOrdenados = data.sort((a, b) => a.nombre.localeCompare(b.nombre));
-
-    selectInstructor.innerHTML = `<option value="">Seleccione un ${tipo.toLowerCase()}</option>`;
-    instructoresOrdenados.forEach(inst => {
-      const option = document.createElement('option');
-      option.value = inst.nombre;
-      option.setAttribute('data-area', inst.area);
-      option.textContent = inst.nombre;
-      selectInstructor.appendChild(option);
-    });
-  } catch (error) {
-    console.error('Error cargando instructores:', error);
+  // Obtener instructores desde el cache según tipo y sede
+  let instructores = [];
+  if (tipo === 'Tutor' && sede === 'Norte') {
+    instructores = datosCache.tutoresNorte;
+  } else if (tipo === 'Tutor' && sede === 'Sur') {
+    instructores = datosCache.tutoresSur;
+  } else if (tipo === 'Profesor' && sede === 'Norte') {
+    instructores = datosCache.profesoresNorte;
+  } else if (tipo === 'Profesor' && sede === 'Sur') {
+    instructores = datosCache.profesoresSur;
   }
+
+  // Ordenar instructores alfabéticamente
+  const instructoresOrdenados = [...instructores].sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  selectInstructor.innerHTML = `<option value="">Seleccione un ${tipo.toLowerCase()}</option>`;
+  instructoresOrdenados.forEach(inst => {
+    const option = document.createElement('option');
+    option.value = inst.nombre;
+    option.setAttribute('data-area', inst.area);
+    option.textContent = inst.nombre;
+    selectInstructor.appendChild(option);
+  });
 }
 
 // ===================================
-// CARGAR MATERIAS
+// CARGAR MATERIAS (OPTIMIZADO)
 // ===================================
-async function cargarMaterias() {
+function cargarMaterias() {
   const selectInstructor = document.getElementById('instructor');
   const selectedOption = selectInstructor.options[selectInstructor.selectedIndex];
   
@@ -464,71 +523,56 @@ async function cargarMaterias() {
 
   document.getElementById('grupoMateria').classList.remove('hidden');
 
-  try {
-    const data = await supabaseQuery('materias', {
-      eq: { field: 'area', value: area }
-    });
+  // Filtrar materias desde el cache
+  const materiasFiltradas = datosCache.materias.filter(mat => mat.area === area);
+  const materiasOrdenadas = materiasFiltradas.sort((a, b) => a.materia.localeCompare(b.materia));
 
-    const selectMateria = document.getElementById('asignatura');
-    selectMateria.innerHTML = '<option value="">Seleccione una asignatura</option>';
-    
-    // Ordenar materias alfabéticamente
-    const materiasOrdenadas = data.sort((a, b) => a.materia.localeCompare(b.materia));
-    
-    materiasOrdenadas.forEach(mat => {
-      const option = document.createElement('option');
-      option.value = mat.materia;
-      option.textContent = mat.materia;
-      selectMateria.appendChild(option);
-    });
-  } catch (error) {
-    console.error('Error cargando materias:', error);
-  }
+  const selectMateria = document.getElementById('asignatura');
+  selectMateria.innerHTML = '<option value="">Seleccione una asignatura</option>';
+  
+  materiasOrdenadas.forEach(mat => {
+    const option = document.createElement('option');
+    option.value = mat.materia;
+    option.textContent = mat.materia;
+    selectMateria.appendChild(option);
+  });
 }
 
 // ===================================
-// CARGAR TEMAS
+// CARGAR TEMAS (OPTIMIZADO)
 // ===================================
-async function cargarTemas() {
+function cargarTemas() {
   const materia = document.getElementById('asignatura').value;
   if (!materia) return;
 
   document.getElementById('grupoTema').classList.remove('hidden');
 
-  try {
-    const data = await supabaseQuery('temas', {
-      eq: { field: 'materia', value: materia }
-    });
+  // Filtrar temas desde el cache
+  const temasFiltrados = datosCache.temas.filter(tem => tem.materia === materia);
+  const temasOrdenados = temasFiltrados.sort((a, b) => a.tema.localeCompare(b.tema));
 
-    const selectTema = document.getElementById('tema');
-    selectTema.innerHTML = '<option value="">Seleccione un tema</option>';
-    
-    // Ordenar temas alfabéticamente
-    const temasOrdenados = data.sort((a, b) => a.tema.localeCompare(b.tema));
-    
-    temasOrdenados.forEach(tem => {
-      const option = document.createElement('option');
-      option.value = tem.tema;
-      option.textContent = tem.tema;
-      selectTema.appendChild(option);
-    });
+  const selectTema = document.getElementById('tema');
+  selectTema.innerHTML = '<option value="">Seleccione un tema</option>';
+  
+  temasOrdenados.forEach(tem => {
+    const option = document.createElement('option');
+    option.value = tem.tema;
+    option.textContent = tem.tema;
+    selectTema.appendChild(option);
+  });
 
-    const optionOtro = document.createElement('option');
-    optionOtro.value = 'Otro';
-    optionOtro.textContent = 'Otro: ¿Cuál?';
-    selectTema.appendChild(optionOtro);
+  const optionOtro = document.createElement('option');
+  optionOtro.value = 'Otro';
+  optionOtro.textContent = 'Otro: ¿Cuál?';
+  selectTema.appendChild(optionOtro);
 
-    document.getElementById('grupoMotivo').classList.remove('hidden');
-    document.getElementById('grupoCalificacion').classList.remove('hidden');
-    document.getElementById('grupoSugerencias').classList.remove('hidden');
-    document.getElementById('btnEnviar').classList.remove('hidden');
-    
-    // Marcar que el usuario está llenando el formulario
-    formularioEnviandose = true;
-    actualizarBotonCerrarSesion();
-  } catch (error) {
-    console.error('Error cargando temas:', error);
-  }
+  document.getElementById('grupoMotivo').classList.remove('hidden');
+  document.getElementById('grupoCalificacion').classList.remove('hidden');
+  document.getElementById('grupoSugerencias').classList.remove('hidden');
+  document.getElementById('btnEnviar').classList.remove('hidden');
+  
+  formularioEnviandose = true;
+  actualizarBotonCerrarSesion();
 }
 
 function toggleOtroTema() {
@@ -593,7 +637,6 @@ function confirmarCancelacion() {
     '¿Estás seguro que deseas cancelar?',
     'Se perderán todos los datos del formulario que has ingresado.',
     function() {
-      // Si confirma
       cerrarSesion();
     },
     function() {
@@ -613,7 +656,6 @@ function mostrarModalConfirmacion(titulo, mensaje, callbackConfirmar, callbackCa
   modal.style.display = 'flex';
   modal.classList.remove('hidden');
   
-  // Configurar botones
   document.getElementById('btnConfirmarModal').onclick = function() {
     modal.style.display = 'none';
     modal.classList.add('hidden');
@@ -646,9 +688,7 @@ async function guardarFormulario(event) {
     ? document.getElementById('tituloCurso').value.toUpperCase() 
     : null;
   
-// OBTENER FECHA Y HORA EN FORMATO COLOMBIA (UTC-5)
   const ahora = new Date();
-  // Ajustar a hora de Colombia (UTC-5)
   const fechaColombia = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
   const fechaISO = fechaColombia.toISOString();
   
@@ -677,15 +717,12 @@ async function guardarFormulario(event) {
   try {
     await supabaseInsert('formularios', datos);
     
-    // Limpiar mensaje de carga
     document.getElementById('mensajeFormulario').innerHTML = '';
     
-    // Mostrar modal de éxito
     const modal = document.getElementById('modalExitoFormulario');
     modal.style.display = 'flex';
     modal.classList.remove('hidden');
     
-    // Limpiar formulario
     document.getElementById('formTutoria').reset();
     document.getElementById('grupoTituloCurso').classList.add('hidden');
     document.getElementById('grupoInstructor').classList.add('hidden');
@@ -697,7 +734,6 @@ async function guardarFormulario(event) {
     document.getElementById('btnEnviar').classList.add('hidden');
     formularioEnviandose = false;
     
-    // Redirigir después de 3 segundos
     setTimeout(() => {
       modal.style.display = 'none';
       modal.classList.add('hidden');
@@ -973,17 +1009,14 @@ function generarExcelSimplificado(datos, nombreArchivo) {
   let csv = headers.join(',') + '\n';
   
   datos.forEach(fila => {
-    // Convertir a hora de Colombia (UTC-5)
     const fechaUTC = new Date(fila.fecha);
     const fechaColombia = new Date(fechaUTC.getTime() - (5 * 60 * 60 * 1000));
     
-    // Formatear fecha como DD/MM/AAAA
     const dia = String(fechaColombia.getUTCDate()).padStart(2, '0');
     const mes = String(fechaColombia.getUTCMonth() + 1).padStart(2, '0');
     const anio = fechaColombia.getUTCFullYear();
     const fechaFormateada = `${dia}/${mes}/${anio}`;
     
-    // Formatear hora como HH:MM
     const horas = String(fechaColombia.getUTCHours()).padStart(2, '0');
     const minutos = String(fechaColombia.getUTCMinutes()).padStart(2, '0');
     const horaFormateada =`${horas}:${minutos}`;
@@ -1033,17 +1066,14 @@ function generarExcelCompleto(datos, nombreArchivo) {
   let csv = headers.join(',') + '\n';
   
   datos.forEach(fila => {
-    // Convertir a hora de Colombia (UTC-5)
     const fechaUTC = new Date(fila.fecha);
     const fechaColombia = new Date(fechaUTC.getTime() - (5 * 60 * 60 * 1000));
     
-    // Formatear fecha como DD/MM/AAAA
     const dia = String(fechaColombia.getUTCDate()).padStart(2, '0');
     const mes = String(fechaColombia.getUTCMonth() + 1).padStart(2, '0');
     const anio = fechaColombia.getUTCFullYear();
     const fechaFormateada = `${dia}/${mes}/${anio}`;
     
-    // Formatear hora como HH:MM
     const horas = String(fechaColombia.getUTCHours()).padStart(2, '0');
     const minutos = String(fechaColombia.getUTCMinutes()).padStart(2, '0');
     const horaFormateada = `${horas}:${minutos}`;
@@ -1101,8 +1131,16 @@ function cerrarSesionAdmin() {
 }
 
 // ===================================
-// INICIALIZACIÓN
+// INICIALIZACIÓN CON PRECARGA
 // ===================================
-window.onload = function() {
+window.onload = async function() {
   console.log('Sistema PMA con Supabase iniciado');
+  console.log('Iniciando precarga de datos estáticos en segundo plano...');
+  
+  // Precargar datos en segundo plano sin bloquear la UI
+  precargarDatosEstaticos().then(() => {
+    console.log('Precarga completada. Sistema listo para uso instantáneo.');
+  }).catch(error => {
+    console.error('Error en precarga inicial:', error);
+  });
 };
