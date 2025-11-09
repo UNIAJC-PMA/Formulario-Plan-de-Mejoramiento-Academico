@@ -653,45 +653,51 @@ function mostrarModalConfirmacion(titulo, mensaje, callbackConfirmar) {
 async function guardarFormulario(event) {
   event.preventDefault();
   
+  // PRIMERO: Validar la calificación ANTES de todo lo demás
   const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
   
   if (!calificacionRadio) {
     const grupoCalificacion = document.getElementById('grupoCalificacion');
     
-    // Asegurarse de que esté visible
+    // Verificar si la sección está visible
     if (grupoCalificacion.classList.contains('hidden')) {
       mostrarMensaje('mensajeFormulario', 'Debe completar el formulario hasta la sección de calificación', 'error');
       return;
     }
     
-    // Hacer scroll
-    grupoCalificacion.scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'center' 
-    });
+    // Mostrar mensaje inmediatamente
+    mostrarMensaje('mensajeFormulario', '⚠️ Por favor, seleccione una calificación para la tutoría (1-5)', 'error');
     
-    // Esperar un poco antes de resaltar
+    // Hacer scroll suave
+    setTimeout(() => {
+      grupoCalificacion.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }, 100);
+    
+    // Resaltar después del scroll
     setTimeout(() => {
       grupoCalificacion.style.background = '#fff3cd';
       grupoCalificacion.style.padding = '20px';
       grupoCalificacion.style.borderRadius = '8px';
       grupoCalificacion.style.border = '3px solid #ffc107';
       grupoCalificacion.style.transition = 'all 0.3s';
+      grupoCalificacion.style.boxShadow = '0 0 20px rgba(255, 193, 7, 0.5)';
       
-      // Mostrar mensaje de error adicional
-      mostrarMensaje('mensajeFormulario', 'Por favor, califique la tutoría antes de enviar el formulario', 'error');
-      
-      // Quitar resaltado después de 4 segundos
+      // Quitar resaltado después de 5 segundos
       setTimeout(() => {
         grupoCalificacion.style.background = '';
         grupoCalificacion.style.padding = '';
         grupoCalificacion.style.border = '';
-      }, 4000);
-    }, 500);
+        grupoCalificacion.style.boxShadow = '';
+      }, 5000);
+    }, 600);
     
-    return;
+    return; // Detener el envío del formulario
   }
   
+  // Si llegamos aquí, la calificación está seleccionada
   mostrarCargando('mensajeFormulario');
 
   let tema = document.getElementById('tema').value;
