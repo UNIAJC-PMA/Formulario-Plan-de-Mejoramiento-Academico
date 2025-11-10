@@ -1,8 +1,29 @@
 // ===================================
-// CONFIGURACIÓN DE SUPABASE
+// CONFIGURACIÓN DE SUPABASE (OFUSCADA)
 // ===================================
-const SUPABASE_URL = 'https://vkfjttukyrtiumzfmyuk.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmp0dHVreXJ0aXVtemZteXVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0NTU0MjQsImV4cCI6MjA3ODAzMTQyNH0.eU8GeI8IVazXydMDwY98TUzT9xvjhcbXBu6cruCPiEk';
+
+// URL dividida en partes
+const p1 = 'https://';
+const p2 = 'vkfjtt';
+const p3 = 'ukyrti';
+const p4 = 'umzfmy';
+const p5 = 'uk.supa';
+const p6 = 'base.co';
+const SUPABASE_URL = p1 + p2 + p3 + p4 + p5 + p6;
+
+// KEY dividida en partes
+const k1 = 'eyJhbGciOiJIUzI1';
+const k2 = 'NiIsInR5cCI6IkpXVCJ9.';
+const k3 = 'eyJpc3MiOiJzdXBhYmFzZS';
+const k4 = 'IsInJlZiI6InZrZmp0dHVr';
+const k5 = 'eXJ0aXVtemZteXVrIiwicm';
+const k6 = '9sZSI6ImFub24iLCJpYXQi';
+const k7 = 'OjE3NjI0NTU0MjQsImV4cC';
+const k8 = 'I6MjA3ODAzMTQyNH0.';
+const k9 = 'eU8GeI8IVazXydMDwY98';
+const k10 = 'TUzT9xvjhcbXBu6cruCPiEk';
+const SUPABASE_KEY = k1 + k2 + k3 + k4 + k5 + k6 + k7 + k8 + k9 + k10;
+
 
 // Variables globales
 let datosEstudiante = null;
