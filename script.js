@@ -933,9 +933,19 @@ async function cargarEstadisticas() {
     });
     detalles += '</div>';
 
-    detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Tutorías por Instructor - Sede Norte</h3>';
-    const instructoresNorte = Object.entries(stats.instructoresPorSede.Norte || {})
-      .sort((a, b) => b[1] - a[1]);
+   // Contenedor con botones tipo horarios para instructores
+    detalles += '<div class="chart-container">';
+    detalles += '<h3 class="chart-title">Cantidad de Tutorías por Instructor</h3>';
+    
+    // Botones de sedes
+    detalles += '<div class="botones-sedes">';
+    detalles += '<button class="btn btn-secondary btn-sede" onclick="toggleInstructoresSede(\'norte\')">Sede Norte</button>';
+    detalles += '<button class="btn btn-secondary btn-sede" onclick="toggleInstructoresSede(\'sur\')">Sede Sur</button>';
+    detalles += '</div>';
+    
+    // Lista Sede Norte
+    detalles += '<div id="instructoresNorte" class="horario-info hidden">';
+    detalles += '<h4 class="horario-titulo">Sede Norte</h4>';
     if (instructoresNorte.length > 0) {
       instructoresNorte.forEach(([instructor, cantidad]) => {
         const promedio = promediosPorInstructor[instructor] || 'N/A';
@@ -948,10 +958,10 @@ async function cargarEstadisticas() {
       detalles += '<p style="text-align: center; color: #666;">No hay instructores en Sede Norte</p>';
     }
     detalles += '</div>';
-
-    detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Tutorías por Instructor - Sede Sur</h3>';
-    const instructoresSur = Object.entries(stats.instructoresPorSede.Sur || {})
-      .sort((a, b) => b[1] - a[1]);
+    
+    // Lista Sede Sur
+    detalles += '<div id="instructoresSur" class="horario-info hidden">';
+    detalles += '<h4 class="horario-titulo">Sede Sur</h4>';
     if (instructoresSur.length > 0) {
       instructoresSur.forEach(([instructor, cantidad]) => {
         const promedio = promediosPorInstructor[instructor] || 'N/A';
@@ -963,6 +973,8 @@ async function cargarEstadisticas() {
     } else {
       detalles += '<p style="text-align: center; color: #666;">No hay instructores en Sede Sur</p>';
     }
+    detalles += '</div>';
+    
     detalles += '</div>';
 
     document.getElementById('detallesStats').innerHTML = detalles;
@@ -1198,6 +1210,24 @@ function actualizarProgreso(paso) {
   
   document.getElementById(`step${paso}`).classList.add('active');
 }
+
+
+
+// ===================================
+// TOGGLE INSTRUCTORES POR SEDE
+// ===================================
+function toggleInstructoresSede(sede) {
+  document.getElementById('instructoresNorte').classList.add('hidden');
+  document.getElementById('instructoresSur').classList.add('hidden');
+  
+  if (sede === 'norte') {
+    document.getElementById('instructoresNorte').classList.toggle('hidden');
+  } else if (sede === 'sur') {
+    document.getElementById('instructoresSur').classList.toggle('hidden');
+  }
+}
+
+
 
 // ===================================
 // INICIALIZACIÓN
