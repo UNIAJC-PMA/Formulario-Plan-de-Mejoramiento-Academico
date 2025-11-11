@@ -484,10 +484,16 @@ function cargarInstructores() {
   if (!sede || !tipo) return;
 
   // Ocultar campos al cambiar sede o tipo
-  document.getElementById('grupoFacultadDepartamento').classList.add('hidden');
+  const grupoFacultad = document.getElementById('grupoFacultadDepartamento');
+  const selectFacultad = document.getElementById('facultadDepartamento');
+  
+  grupoFacultad.classList.add('hidden');
   document.getElementById('grupoInstructor').classList.add('hidden');
-  document.getElementById('facultadDepartamento').value = '';
+  selectFacultad.value = '';
   document.getElementById('instructor').value = '';
+  
+  // IMPORTANTE: Remover required del campo de facultad cuando está oculto
+  selectFacultad.removeAttribute('required');
 
   if (tipo === 'Tutor') {
     // Si es tutor, mostrar directamente los tutores según la sede
@@ -517,7 +523,9 @@ function cargarInstructores() {
   } else if (tipo === 'Profesor') {
     // Si es profesor, mostrar el selector de Facultad/Departamento
     // INDEPENDIENTE de la sede
-    document.getElementById('grupoFacultadDepartamento').classList.remove('hidden');
+    grupoFacultad.classList.remove('hidden');
+    // IMPORTANTE: Agregar required cuando se muestra
+    selectFacultad.setAttribute('required', 'required');
     actualizarProgreso(2);
   }
 }

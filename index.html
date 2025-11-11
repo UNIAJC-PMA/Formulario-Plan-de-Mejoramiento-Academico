@@ -312,6 +312,8 @@
           <input type="text" id="tituloCurso" class="uppercase-input">
         </div>
 
+        <!-- REEMPLAZA toda esta sección en tu HTML del formulario -->
+
         <div class="form-group">
           <label>Sede donde recibió la tutoría *</label>
           <select id="sedeTutoria" required onchange="cargarInstructores()">
@@ -320,8 +322,6 @@
             <option value="Sur">Sede Sur</option>
           </select>
         </div>
-
-       <!-- REEMPLAZA esta sección en tu HTML del formulario -->
 
         <div class="form-group">
           <label>¿Quién impartió la tutoría? *</label>
@@ -332,10 +332,10 @@
           </select>
         </div>
 
-        <!-- CAMBIADO: Nombre del campo y opciones -->
+        <!-- CORREGIDO: Sin required inicialmente, se agrega dinámicamente con JS -->
         <div class="form-group hidden" id="grupoFacultadDepartamento">
           <label>Facultad/Departamento *</label>
-          <select id="facultadDepartamento" required onchange="cargarProfesoresPorFacultad()">
+          <select id="facultadDepartamento" onchange="cargarProfesoresPorFacultad()">
             <option value="">Seleccione una facultad/departamento</option>
             <option value="Departamento de Ciencias Básicas">Departamento de Ciencias Básicas</option>
             <option value="Facultad de Ciencias Empresariales">Facultad de Ciencias Empresariales</option>
