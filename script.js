@@ -31,14 +31,13 @@ let instructorActual = null;
 let formularioEnviandose = false;
 
 // ===================================
-// CACHE DE DATOS PRECARGADOS
+// CACHE DE DATOS PRECARGADOS - MODIFICADO
 // ===================================
 let datosCache = {
   facultadesCarreras: [],
   tutoresNorte: [],
   tutoresSur: [],
-  profesoresNorte: [],
-  profesoresSur: [],
+  profesores: [], // CAMBIADO: ahora es una sola tabla
   materias: [],
   temas: [],
   cargado: false
@@ -83,7 +82,7 @@ async function supabaseInsert(table, data) {
 }
 
 // ===================================
-// PRECARGA DE DATOS
+// PRECARGA DE DATOS - MODIFICADO
 // ===================================
 async function precargarDatosEstaticos() {
   if (datosCache.cargado) return;
@@ -95,16 +94,14 @@ async function precargarDatosEstaticos() {
       facultadesCarreras,
       tutoresNorte,
       tutoresSur,
-      profesoresNorte,
-      profesoresSur,
+      profesores, // CAMBIADO: una sola llamada
       materias,
       temas
     ] = await Promise.all([
       supabaseQuery('facultades_carreras'),
       supabaseQuery('tutores_norte'),
       supabaseQuery('tutores_sur'),
-      supabaseQuery('profesores_norte'),
-      supabaseQuery('profesores_sur'),
+      supabaseQuery('profesores'), // CAMBIADO: nueva tabla única
       supabaseQuery('materias'),
       supabaseQuery('temas')
     ]);
@@ -113,8 +110,7 @@ async function precargarDatosEstaticos() {
       facultadesCarreras,
       tutoresNorte,
       tutoresSur,
-      profesoresNorte,
-      profesoresSur,
+      profesores, // CAMBIADO
       materias,
       temas,
       cargado: true
@@ -479,7 +475,7 @@ async function iniciarSesion(event) {
 }
 
 // ===================================
-// CARGAR INSTRUCTORES - MODIFICADO
+// CARGAR INSTRUCTORES - MODIFICADO COMPLETAMENTE
 // ===================================
 function cargarInstructores() {
   const sede = document.getElementById('sedeTutoria').value;
@@ -487,14 +483,14 @@ function cargarInstructores() {
 
   if (!sede || !tipo) return;
 
-  // Ocultar facultad del profesor y el instructor al cambiar sede o tipo
-  document.getElementById('grupoFacultadProfesor').classList.add('hidden');
+  // Ocultar campos al cambiar sede o tipo
+  document.getElementById('grupoFacultadDepartamento').classList.add('hidden');
   document.getElementById('grupoInstructor').classList.add('hidden');
-  document.getElementById('facultadProfesor').value = '';
+  document.getElementById('facultadDepartamento').value = '';
   document.getElementById('instructor').value = '';
 
   if (tipo === 'Tutor') {
-    // Si es tutor, mostrar directamente los tutores
+    // Si es tutor, mostrar directamente los tutores según la sede
     const selectInstructor = document.getElementById('instructor');
     document.getElementById('grupoInstructor').classList.remove('hidden');
     document.getElementById('labelInstructor').textContent = 'Tutor *';
@@ -519,31 +515,29 @@ function cargarInstructores() {
     
     actualizarProgreso(2);
   } else if (tipo === 'Profesor') {
-    // Si es profesor, mostrar el selector de facultad
-    document.getElementById('grupoFacultadProfesor').classList.remove('hidden');
+    // Si es profesor, mostrar el selector de Facultad/Departamento
+    // INDEPENDIENTE de la sede
+    document.getElementById('grupoFacultadDepartamento').classList.remove('hidden');
     actualizarProgreso(2);
   }
 }
 
 // ===================================
-// CARGAR PROFESORES POR FACULTAD - NUEVA FUNCIÓN
+// CARGAR PROFESORES POR FACULTAD/DEPARTAMENTO - MODIFICADO
 // ===================================
 function cargarProfesoresPorFacultad() {
-  const sede = document.getElementById('sedeTutoria').value;
-  const facultadProfesor = document.getElementById('facultadProfesor').value;
+  const facultadDepartamento = document.getElementById('facultadDepartamento').value;
 
-  if (!sede || !facultadProfesor) return;
+  if (!facultadDepartamento) return;
 
   const selectInstructor = document.getElementById('instructor');
   document.getElementById('grupoInstructor').classList.remove('hidden');
   document.getElementById('labelInstructor').textContent = 'Profesor *';
 
-  let profesores = [];
-  if (sede === 'Norte') {
-    profesores = datosCache.profesoresNorte.filter(prof => prof.facultad === facultadProfesor);
-  } else if (sede === 'Sur') {
-    profesores = datosCache.profesoresSur.filter(prof => prof.facultad === facultadProfesor);
-  }
+  // CAMBIADO: Filtrar por facultad_departamento sin considerar la sede
+  const profesores = datosCache.profesores.filter(
+    prof => prof.facultad_departamento === facultadDepartamento
+  );
 
   const profesoresOrdenados = [...profesores].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
@@ -709,27 +703,24 @@ function mostrarModalConfirmacion(titulo, mensaje, callbackConfirmar) {
 }
 
 // ===================================
-// GUARDAR FORMULARIO
+// GUARDAR FORMULARIO - MODIFICADO
 // ===================================
 async function guardarFormulario(event) {
   event.preventDefault();
   
-  // PRIMERO: Validar la calificación ANTES de todo lo demás
+  // Validación de calificación (sin cambios)
   const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
   
   if (!calificacionRadio) {
     const grupoCalificacion = document.getElementById('grupoCalificacion');
     
-    // Verificar si la sección está visible
     if (grupoCalificacion.classList.contains('hidden')) {
       mostrarMensaje('mensajeFormulario', 'Debe completar el formulario hasta la sección de calificación', 'error');
       return;
     }
     
-    // Mostrar mensaje inmediatamente
     mostrarMensaje('mensajeFormulario', 'seleccione una calificación para la tutoría', 'error');
     
-    // Hacer scroll suave
     setTimeout(() => {
       grupoCalificacion.scrollIntoView({ 
         behavior: 'smooth', 
@@ -737,7 +728,6 @@ async function guardarFormulario(event) {
       });
     }, 100);
     
-    // Resaltar después del scroll
     setTimeout(() => {
       grupoCalificacion.style.background = '#fff3cd';
       grupoCalificacion.style.padding = '20px';
@@ -746,7 +736,6 @@ async function guardarFormulario(event) {
       grupoCalificacion.style.transition = 'all 0.3s';
       grupoCalificacion.style.boxShadow = '0 0 20px rgba(255, 255, 255, 0.5)';
       
-      // Quitar resaltado después de 5 segundos
       setTimeout(() => {
         grupoCalificacion.style.background = '';
         grupoCalificacion.style.padding = '';
@@ -755,10 +744,9 @@ async function guardarFormulario(event) {
       }, 2000);
     }, 600);
     
-    return; // Detener el envío del formulario
+    return;
   }
   
-  // Si llegamos aquí, la calificación está seleccionada
   mostrarCargando('mensajeFormulario');
 
   let tema = document.getElementById('tema').value;
@@ -778,6 +766,7 @@ async function guardarFormulario(event) {
   const fechaColombia = new Date(ahora.getTime() - diferencia);
   const fechaISO = fechaColombia.toISOString();
   
+  // CAMBIADO: Ahora guardamos facultad_departamento en lugar de facultad_profesor
   const datos = {
     documento: datosEstudiante.documento,
     nombres: datosEstudiante.nombres,
@@ -791,7 +780,7 @@ async function guardarFormulario(event) {
     sede_estudiante: datosEstudiante.sede,
     sede_tutoria: document.getElementById('sedeTutoria').value,
     tipo_instructor: document.getElementById('tipoInstructor').value,
-    facultad_profesor: document.getElementById('facultadProfesor').value,
+    facultad_departamento: document.getElementById('facultadDepartamento').value || null, // CAMBIADO
     instructor: document.getElementById('instructor').value,
     asignatura: document.getElementById('asignatura').value,
     tema: tema,
@@ -812,7 +801,7 @@ async function guardarFormulario(event) {
     
     document.getElementById('formTutoria').reset();
     document.getElementById('grupoTituloCurso').classList.add('hidden');
-    document.getElementById('grupoFacultadProfesor').classList.add('hidden');
+    document.getElementById('grupoFacultadDepartamento').classList.add('hidden'); // CAMBIADO
     document.getElementById('grupoInstructor').classList.add('hidden');
     document.getElementById('grupoMateria').classList.add('hidden');
     document.getElementById('grupoTema').classList.add('hidden');

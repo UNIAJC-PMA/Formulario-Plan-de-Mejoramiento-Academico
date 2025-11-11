@@ -321,6 +321,8 @@
           </select>
         </div>
 
+       <!-- REEMPLAZA esta sección en tu HTML del formulario -->
+
         <div class="form-group">
           <label>¿Quién impartió la tutoría? *</label>
           <select id="tipoInstructor" required onchange="cargarInstructores()">
@@ -330,13 +332,16 @@
           </select>
         </div>
 
-        <!-- NUEVO: Campo de Facultad del Profesor -->
-        <div class="form-group hidden" id="grupoFacultadProfesor">
-          <label>Facultad *</label>
-          <select id="facultadProfesor" required onchange="cargarProfesoresPorFacultad()">
-            <option value="">Seleccione una facultad</option>
-            <option value="Ingenieria">Ingeniería</option>
-            <option value="Ciencias empresariales">Ciencias Empresariales</option>
+        <!-- CAMBIADO: Nombre del campo y opciones -->
+        <div class="form-group hidden" id="grupoFacultadDepartamento">
+          <label>Facultad/Departamento *</label>
+          <select id="facultadDepartamento" required onchange="cargarProfesoresPorFacultad()">
+            <option value="">Seleccione una facultad/departamento</option>
+            <option value="Departamento de Ciencias Básicas">Departamento de Ciencias Básicas</option>
+            <option value="Facultad de Ciencias Empresariales">Facultad de Ciencias Empresariales</option>
+            <option value="Facultad de Ciencias Sociales y Humanas">Facultad de Ciencias Sociales y Humanas</option>
+            <option value="Facultad de Educación a Distancia y Virtual">Facultad de Educación a Distancia y Virtual</option>
+            <option value="Facultad de Ingenieria">Facultad de Ingenieria</option>
           </select>
         </div>
 
