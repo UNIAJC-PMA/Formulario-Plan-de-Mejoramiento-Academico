@@ -31,13 +31,13 @@ let instructorActual = null;
 let formularioEnviandose = false;
 
 // ===================================
-// CACHE DE DATOS PRECARGADOS - MODIFICADO
+// CACHE DE DATOS PRECARGADOS
 // ===================================
 let datosCache = {
   facultadesCarreras: [],
   tutoresNorte: [],
   tutoresSur: [],
-  profesores: [], // CAMBIADO: ahora es una sola tabla
+  profesores: [],
   materias: [],
   temas: [],
   cargado: false
@@ -82,7 +82,7 @@ async function supabaseInsert(table, data) {
 }
 
 // ===================================
-// PRECARGA DE DATOS - MODIFICADO
+// PRECARGA DE DATOS
 // ===================================
 async function precargarDatosEstaticos() {
   if (datosCache.cargado) return;
@@ -94,14 +94,14 @@ async function precargarDatosEstaticos() {
       facultadesCarreras,
       tutoresNorte,
       tutoresSur,
-      profesores, // CAMBIADO: una sola llamada
+      profesores,
       materias,
       temas
     ] = await Promise.all([
       supabaseQuery('facultades_carreras'),
       supabaseQuery('tutores_norte'),
       supabaseQuery('tutores_sur'),
-      supabaseQuery('profesores'), // CAMBIADO: nueva tabla única
+      supabaseQuery('profesores'),
       supabaseQuery('materias'),
       supabaseQuery('temas')
     ]);
@@ -110,7 +110,7 @@ async function precargarDatosEstaticos() {
       facultadesCarreras,
       tutoresNorte,
       tutoresSur,
-      profesores, // CAMBIADO
+      profesores,
       materias,
       temas,
       cargado: true
@@ -475,7 +475,7 @@ async function iniciarSesion(event) {
 }
 
 // ===================================
-// CARGAR INSTRUCTORES - MODIFICADO COMPLETAMENTE
+// CARGAR INSTRUCTORES - MODIFICADO
 // ===================================
 function cargarInstructores() {
   const sede = document.getElementById('sedeTutoria').value;
@@ -523,7 +523,7 @@ function cargarInstructores() {
 }
 
 // ===================================
-// CARGAR PROFESORES POR FACULTAD/DEPARTAMENTO - MODIFICADO
+// CARGAR PROFESORES POR FACULTAD/DEPARTAMENTO
 // ===================================
 function cargarProfesoresPorFacultad() {
   const facultadDepartamento = document.getElementById('facultadDepartamento').value;
@@ -534,7 +534,7 @@ function cargarProfesoresPorFacultad() {
   document.getElementById('grupoInstructor').classList.remove('hidden');
   document.getElementById('labelInstructor').textContent = 'Profesor *';
 
-  // CAMBIADO: Filtrar por facultad_departamento sin considerar la sede
+  // Filtrar por facultad_departamento sin considerar la sede
   const profesores = datosCache.profesores.filter(
     prof => prof.facultad_departamento === facultadDepartamento
   );
@@ -703,12 +703,12 @@ function mostrarModalConfirmacion(titulo, mensaje, callbackConfirmar) {
 }
 
 // ===================================
-// GUARDAR FORMULARIO - MODIFICADO
+// GUARDAR FORMULARIO
 // ===================================
 async function guardarFormulario(event) {
   event.preventDefault();
   
-  // Validación de calificación (sin cambios)
+  // Validar la calificación
   const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
   
   if (!calificacionRadio) {
@@ -766,7 +766,9 @@ async function guardarFormulario(event) {
   const fechaColombia = new Date(ahora.getTime() - diferencia);
   const fechaISO = fechaColombia.toISOString();
   
-  // CAMBIADO: Ahora guardamos facultad_departamento en lugar de facultad_profesor
+  // Obtener el valor de facultad_departamento (puede estar vacío si es tutor)
+  const facultadDepartamentoValue = document.getElementById('facultadDepartamento').value || null;
+  
   const datos = {
     documento: datosEstudiante.documento,
     nombres: datosEstudiante.nombres,
@@ -780,7 +782,7 @@ async function guardarFormulario(event) {
     sede_estudiante: datosEstudiante.sede,
     sede_tutoria: document.getElementById('sedeTutoria').value,
     tipo_instructor: document.getElementById('tipoInstructor').value,
-    facultad_departamento: document.getElementById('facultadDepartamento').value || null, // CAMBIADO
+    facultad_departamento: facultadDepartamentoValue,
     instructor: document.getElementById('instructor').value,
     asignatura: document.getElementById('asignatura').value,
     tema: tema,
@@ -801,7 +803,7 @@ async function guardarFormulario(event) {
     
     document.getElementById('formTutoria').reset();
     document.getElementById('grupoTituloCurso').classList.add('hidden');
-    document.getElementById('grupoFacultadDepartamento').classList.add('hidden'); // CAMBIADO
+    document.getElementById('grupoFacultadDepartamento').classList.add('hidden');
     document.getElementById('grupoInstructor').classList.add('hidden');
     document.getElementById('grupoMateria').classList.add('hidden');
     document.getElementById('grupoTema').classList.add('hidden');
@@ -1041,15 +1043,70 @@ async function cargarEstadisticas() {
   }
 }
 
+// ===================================
+// DESCARGAR DATOS
+// ===================================
+async function descargarDatos() {
+  const desde = document.getElementById('fechaDesde').value;
+  const hasta = document.getElementById('fechaHasta').value;
 
-// ===================================
-// DESCARGAR DATOS - FUNCIONES CORREGIDAS
-// ===================================
+  if (!desde || !hasta) {
+    alert('Por favor seleccione ambas fechas');
+    return;
+  }
+
+  if (new Date(desde) > new Date(hasta)) {
+    alert('La fecha inicial no puede ser mayor que la fecha final');
+    return;
+  }
+
+  try {
+    let url = `${SUPABASE_URL}/rest/v1/formularios?fecha=gte.${desde}T00:00:00&fecha=lte.${hasta}T23:59:59&order=fecha.asc`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.length === 0) {
+      alert('No hay registros en el rango de fechas seleccionado');
+      return;
+    }
+
+    generarExcelSimplificado(data, `PMA_${desde}_a_${hasta}`);
+    alert(`${data.length} registros descargados exitosamente`);
+  } catch (error) {
+    alert('Error al descargar datos: ' + error.message);
+  }
+}
+
+async function descargarTodo() {
+  if (!confirm('¿Está seguro de descargar todos los registros?')) {
+    return;
+  }
+
+  try {
+    const data = await supabaseQuery('formularios', { order: 'fecha.asc' });
+    
+    if (data.length === 0) {
+      alert('No hay registros para descargar');
+      return;
+    }
+
+    generarExcelCompleto(data, 'PMA_Completo');
+    alert(`${data.length} registros descargados exitosamente`);
+  } catch (error) {
+    alert('Error al descargar datos: ' + error.message);
+  }
+}
 
 function generarExcelSimplificado(datos, nombreArchivo) {
   const headers = ['Fecha', 'Hora', 'Documento', 'Nombres', 'Apellidos', 'Programa', 'Instructor', 'Asignatura', 'Tema'];
   
-  // Preparar los datos
   const datosExcel = datos.map(fila => {
     const fechaUTC = new Date(fila.fecha);
     const fechaColombia = new Date(fechaUTC.getTime() - (5 * 60 * 60 * 1000));
@@ -1076,11 +1133,9 @@ function generarExcelSimplificado(datos, nombreArchivo) {
     };
   });
 
-  // Crear libro de trabajo
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(datosExcel);
 
-  // Aplicar estilo a los encabezados (primera fila)
   const range = XLSX.utils.decode_range(ws['!ref']);
   for (let col = range.s.c; col <= range.e.c; col++) {
     const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
@@ -1093,36 +1148,24 @@ function generarExcelSimplificado(datos, nombreArchivo) {
     };
   }
 
-  // Agregar autofiltro
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
 
-  // Ajustar ancho de columnas
   ws['!cols'] = [
-    { wch: 12 }, // Fecha
-    { wch: 8 },  // Hora
-    { wch: 12 }, // Documento
-    { wch: 20 }, // Nombres
-    { wch: 20 }, // Apellidos
-    { wch: 35 }, // Programa
-    { wch: 25 }, // Instructor
-    { wch: 30 }, // Asignatura
-    { wch: 30 }  // Tema
+    { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
+    { wch: 35 }, { wch: 25 }, { wch: 30 }, { wch: 30 }
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "Registros");
 
-  // Descargar el archivo
   const fechaHoy = new Date().toISOString().split('T')[0];
   XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
 }
 
 function generarExcelCompleto(datos, nombreArchivo) {
-  // CAMBIADO: Actualizado header de 'Facultad Profesor' a 'Facultad/Departamento'
   const headers = ['Fecha', 'Hora', 'Documento', 'Nombres', 'Apellidos', 'Facultad', 'Programa', 'Semestre', 'Grupo', 
                   'Tipo Acompañamiento', 'Título Curso', 'Sede Estudiante', 'Sede Tutoría', 'Tipo Instructor', 
                   'Facultad/Departamento', 'Instructor', 'Asignatura', 'Tema', 'Motivo Consulta', 'Calificación', 'Sugerencias'];
   
-  // Preparar los datos
   const datosExcel = datos.map(fila => {
     const fechaUTC = new Date(fila.fecha);
     const fechaColombia = new Date(fechaUTC.getTime() - (5 * 60 * 60 * 1000));
@@ -1151,7 +1194,7 @@ function generarExcelCompleto(datos, nombreArchivo) {
       'Sede Estudiante': fila.sede_estudiante || '',
       'Sede Tutoría': fila.sede_tutoria,
       'Tipo Instructor': fila.tipo_instructor,
-      'Facultad/Departamento': fila.facultad_departamento || '', // CAMBIADO: de facultad_profesor a facultad_departamento
+      'Facultad/Departamento': fila.facultad_departamento || '',
       'Instructor': fila.instructor,
       'Asignatura': fila.asignatura,
       'Tema': fila.tema,
@@ -1161,11 +1204,9 @@ function generarExcelCompleto(datos, nombreArchivo) {
     };
   });
 
-  // Crear libro de trabajo
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(datosExcel);
 
-  // Aplicar estilo a los encabezados (primera fila)
   const range = XLSX.utils.decode_range(ws['!ref']);
   for (let col = range.s.c; col <= range.e.c; col++) {
     const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
@@ -1178,37 +1219,17 @@ function generarExcelCompleto(datos, nombreArchivo) {
     };
   }
 
-  // Agregar autofiltro
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
 
-  // Ajustar ancho de columnas
   ws['!cols'] = [
-    { wch: 12 }, // Fecha
-    { wch: 8 },  // Hora
-    { wch: 12 }, // Documento
-    { wch: 20 }, // Nombres
-    { wch: 20 }, // Apellidos
-    { wch: 35 }, // Facultad
-    { wch: 35 }, // Programa
-    { wch: 10 }, // Semestre
-    { wch: 10 }, // Grupo
-    { wch: 20 }, // Tipo Acompañamiento
-    { wch: 25 }, // Título Curso
-    { wch: 15 }, // Sede Estudiante
-    { wch: 15 }, // Sede Tutoría
-    { wch: 15 }, // Tipo Instructor
-    { wch: 40 }, // Facultad/Departamento (CAMBIADO: ancho aumentado)
-    { wch: 25 }, // Instructor
-    { wch: 30 }, // Asignatura
-    { wch: 30 }, // Tema
-    { wch: 25 }, // Motivo Consulta
-    { wch: 12 }, // Calificación
-    { wch: 40 }  // Sugerencias
+    { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
+    { wch: 35 }, { wch: 35 }, { wch: 10 }, { wch: 10 }, { wch: 20 },
+    { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 },
+    { wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 25 }, { wch: 12 }, { wch: 40 }
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "Registros Completos");
 
-  // Descargar el archivo
   const fechaHoy = new Date().toISOString().split('T')[0];
   XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
 }
@@ -1232,7 +1253,6 @@ function actualizarProgreso(paso) {
   document.getElementById(`step${paso}`).classList.add('active');
 }
 
-
 // ===================================
 // TOGGLE INSTRUCTORES POR SEDE EN ADMIN
 // ===================================
@@ -1246,8 +1266,6 @@ function toggleInstructoresSede(sede) {
     document.getElementById('instructoresSurAdmin').classList.toggle('hidden');
   }
 }
-
-
 
 // ===================================
 // INICIALIZACIÓN
