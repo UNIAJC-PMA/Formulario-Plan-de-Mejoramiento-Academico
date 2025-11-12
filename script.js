@@ -910,15 +910,23 @@ async function cargarEstadisticas() {
       return;
     }
 
+    // FILTRAR SOLO TUTORES (excluir profesores)
+    const soloTutores = data.filter(item => item.tipo_instructor === 'Tutor');
+
+    if (soloTutores.length === 0) {
+      document.getElementById('statsGrid').innerHTML = '<p style="text-align: center; color: #666;">No hay datos de tutorías disponibles aún.</p>';
+      return;
+    }
+
     const stats = {
-      total: data.length,
+      total: soloTutores.length,
       instructoresPorSede: { Norte: {}, Sur: {} },
       sedesTutorias: {},
       calificacionesPorInstructor: {},
       sumaCalificaciones: 0
     };
 
-    data.forEach(item => {
+    soloTutores.forEach(item => {
       const sede = item.sede_tutoria;
       const instructor = item.instructor;
       
@@ -946,30 +954,13 @@ async function cargarEstadisticas() {
       promediosPorInstructor[instructor] = (info.suma / info.cantidad).toFixed(2);
     });
 
-    // Encontrar el mejor TUTOR (no profesor) con mejor promedio
-    // En caso de empate, priorizar el que tiene más tutorías
+    // Encontrar el mejor TUTOR con mejor promedio
     let mejorInstructor = { nombre: '', promedio: 0, cantidad: 0 };
     
-    // Filtrar solo registros donde tipo_instructor sea "Tutor"
-    const soloTutores = data.filter(item => item.tipo_instructor === 'Tutor');
-    
-    // Agrupar tutores con sus promedios y cantidades
-    const tutoresStats = {};
-    soloTutores.forEach(item => {
-      const instructor = item.instructor;
-      if (!tutoresStats[instructor]) {
-        tutoresStats[instructor] = { suma: 0, cantidad: 0 };
-      }
-      tutoresStats[instructor].suma += item.calificacion;
-      tutoresStats[instructor].cantidad += 1;
-    });
-    
-    // Encontrar el mejor tutor
-    Object.keys(tutoresStats).forEach(instructor => {
-      const info = tutoresStats[instructor];
+    Object.keys(stats.calificacionesPorInstructor).forEach(instructor => {
+      const info = stats.calificacionesPorInstructor[instructor];
       const promedio = parseFloat((info.suma / info.cantidad).toFixed(2));
       
-      // Si el promedio es mayor, o si es igual pero tiene más tutorías
       if (promedio > mejorInstructor.promedio || 
          (promedio === mejorInstructor.promedio && info.cantidad > mejorInstructor.cantidad)) {
         mejorInstructor = { 
@@ -992,7 +983,7 @@ async function cargarEstadisticas() {
     grid.innerHTML = `
       <div class="stat-card">
         <h3>${stats.total}</h3>
-        <p>Total Registros</p>
+        <p>Total Tutorías</p>
       </div>
       <div class="stat-card">
         <h3>${promedioCalificacion}</h3>
@@ -1006,7 +997,7 @@ async function cargarEstadisticas() {
 
     let detalles = '';
 
-    detalles += '<div class="chart-container"><h3 class="chart-title">Top 2 Instructores - Sede Norte</h3>';
+    detalles += '<div class="chart-container"><h3 class="chart-title">Top 2 Tutores - Sede Norte</h3>';
     if (top2Norte.length > 0) {
       top2Norte.forEach(([instructor, cantidad]) => {
         detalles += `<div class="list-item"><span>${instructor}</span><strong>${cantidad} tutorías</strong></div>`;
@@ -1016,7 +1007,7 @@ async function cargarEstadisticas() {
     }
     detalles += '</div>';
 
-    detalles += '<div class="chart-container"><h3 class="chart-title">Top 2 Instructores - Sede Sur</h3>';
+    detalles += '<div class="chart-container"><h3 class="chart-title">Top 2 Tutores - Sede Sur</h3>';
     if (top2Sur.length > 0) {
       top2Sur.forEach(([instructor, cantidad]) => {
         detalles += `<div class="list-item"><span>${instructor}</span><strong>${cantidad} tutorías</strong></div>`;
@@ -1034,7 +1025,7 @@ async function cargarEstadisticas() {
     detalles += '</div>';
 
     detalles += `<div class="chart-container">
-      <h3 class="chart-title">Cantidad de Tutorías por Instructor</h3>
+      <h3 class="chart-title">Cantidad de Tutorías por Tutor</h3>
       
       <div class="botones-sedes">
         <button class="btn btn-secondary btn-sede" onclick="toggleInstructoresSede('norte')">
@@ -1059,7 +1050,7 @@ async function cargarEstadisticas() {
         </div>`;
       });
     } else {
-      detalles += '<p style="text-align: center; color: #666;">No hay instructores en Sede Norte</p>';
+      detalles += '<p style="text-align: center; color: #666;">No hay tutores en Sede Norte</p>';
     }
     
     detalles += `</div>
@@ -1078,7 +1069,7 @@ async function cargarEstadisticas() {
         </div>`;
       });
     } else {
-      detalles += '<p style="text-align: center; color: #666;">No hay instructores en Sede Sur</p>';
+      detalles += '<p style="text-align: center; color: #666;">No hay tutores en Sede Sur</p>';
     }
     
     detalles += '</div></div>';
@@ -1156,17 +1147,12 @@ function generarExcelSimplificado(datos, nombreArchivo) {
     const fechaUTC = new Date(fila.fecha);
     const fechaColombia = new Date(fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
     
-    const mes = String(fechaColombia.getMonth() + 1).padStart(2, '0');
-    const dia = String(fechaColombia.getDate()).padStart(2, '0');
-    const anio = fechaColombia.getFullYear();
-    const fechaFormateada = `${mes}/${dia}/${anio}`;
-    
     const horas = String(fechaColombia.getHours()).padStart(2, '0');
     const minutos = String(fechaColombia.getMinutes()).padStart(2, '0');
     const horaFormateada = `${horas}:${minutos}`;
     
     return {
-      'Fecha': fechaFormateada,
+      'Fecha': fechaColombia, // Fecha como objeto Date para que Excel la reconozca
       'Hora': horaFormateada,
       'Documento': parseInt(fila.documento),
       'Nombres': fila.nombres,
@@ -1184,7 +1170,16 @@ function generarExcelSimplificado(datos, nombreArchivo) {
 
   const range = XLSX.utils.decode_range(ws['!ref']);
   
-  // Aplicar formato a documento y grupo como número
+  // Aplicar formato de fecha DD/MM/YYYY a la columna Fecha
+  for (let row = 1; row <= range.e.r; row++) {
+    const fechaCell = XLSX.utils.encode_cell({ r: row, c: 0 }); // Columna Fecha
+    if (ws[fechaCell]) {
+      ws[fechaCell].t = 'd'; // Tipo fecha
+      ws[fechaCell].z = 'dd/mm/yyyy'; // Formato día/mes/año
+    }
+  }
+  
+  // Aplicar formato a documento como número
   for (let row = 1; row <= range.e.r; row++) {
     const docCell = XLSX.utils.encode_cell({ r: row, c: 2 }); // Columna Documento
     if (ws[docCell]) {
@@ -1224,17 +1219,12 @@ function generarExcelCompleto(datos, nombreArchivo) {
     const fechaUTC = new Date(fila.fecha);
     const fechaColombia = new Date(fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
     
-    const mes = String(fechaColombia.getMonth() + 1).padStart(2, '0');
-    const dia = String(fechaColombia.getDate()).padStart(2, '0');
-    const anio = fechaColombia.getFullYear();
-    const fechaFormateada = `${mes}/${dia}/${anio}`;
-    
     const horas = String(fechaColombia.getHours()).padStart(2, '0');
     const minutos = String(fechaColombia.getMinutes()).padStart(2, '0');
     const horaFormateada = `${horas}:${minutos}`;
     
     return {
-      'Fecha': fechaFormateada,
+      'Fecha': fechaColombia, // Fecha como objeto Date para que Excel la reconozca
       'Hora': horaFormateada,
       'Documento': parseInt(fila.documento),
       'Nombres': fila.nombres,
@@ -1263,7 +1253,16 @@ function generarExcelCompleto(datos, nombreArchivo) {
 
   const range = XLSX.utils.decode_range(ws['!ref']);
   
-  // Aplicar formato a documento y grupo como número
+  // Aplicar formato de fecha DD/MM/YYYY a la columna Fecha
+  for (let row = 1; row <= range.e.r; row++) {
+    const fechaCell = XLSX.utils.encode_cell({ r: row, c: 0 }); // Columna Fecha
+    if (ws[fechaCell]) {
+      ws[fechaCell].t = 'd'; // Tipo fecha
+      ws[fechaCell].z = 'dd/mm/yyyy'; // Formato día/mes/año
+    }
+  }
+  
+  // Aplicar formato a documento como número
   for (let row = 1; row <= range.e.r; row++) {
     const docCell = XLSX.utils.encode_cell({ r: row, c: 2 }); // Columna Documento
     if (ws[docCell]) {
