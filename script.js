@@ -934,11 +934,37 @@ async function cargarEstadisticas() {
       promediosPorInstructor[instructor] = (info.suma / info.cantidad).toFixed(2);
     });
 
-    let mejorInstructor = { nombre: '', promedio: 0 };
-    Object.keys(promediosPorInstructor).forEach(instructor => {
-      const promedio = parseFloat(promediosPorInstructor[instructor]);
-      if (promedio > mejorInstructor.promedio) {
-        mejorInstructor = { nombre: instructor, promedio: promedio.toFixed(2) };
+    // Encontrar el mejor TUTOR (no profesor) con mejor promedio
+    // En caso de empate, priorizar el que tiene más tutorías
+    let mejorInstructor = { nombre: '', promedio: 0, cantidad: 0 };
+    
+    // Filtrar solo registros donde tipo_instructor sea "Tutor"
+    const soloTutores = data.filter(item => item.tipo_instructor === 'Tutor');
+    
+    // Agrupar tutores con sus promedios y cantidades
+    const tutoresStats = {};
+    soloTutores.forEach(item => {
+      const instructor = item.instructor;
+      if (!tutoresStats[instructor]) {
+        tutoresStats[instructor] = { suma: 0, cantidad: 0 };
+      }
+      tutoresStats[instructor].suma += item.calificacion;
+      tutoresStats[instructor].cantidad += 1;
+    });
+    
+    // Encontrar el mejor tutor
+    Object.keys(tutoresStats).forEach(instructor => {
+      const info = tutoresStats[instructor];
+      const promedio = parseFloat((info.suma / info.cantidad).toFixed(2));
+      
+      // Si el promedio es mayor, o si es igual pero tiene más tutorías
+      if (promedio > mejorInstructor.promedio || 
+         (promedio === mejorInstructor.promedio && info.cantidad > mejorInstructor.cantidad)) {
+        mejorInstructor = { 
+          nombre: instructor, 
+          promedio: promedio.toFixed(2),
+          cantidad: info.cantidad
+        };
       }
     });
 
