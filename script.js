@@ -157,6 +157,11 @@ async function mostrarRegistro() {
   document.getElementById('confirmacionDatos').classList.add('hidden');
   document.getElementById('btnConfirmarRegistro').classList.add('hidden');
   
+  // Mostrar paso de verificación de documento
+  document.getElementById('pasoDocumento').classList.remove('hidden');
+  document.getElementById('formRegistro').classList.add('hidden');
+  document.getElementById('regDocumento').value = '';
+  
   if (!datosCache.cargado) {
     mostrarCargando('mensajeRegistro');
     await precargarDatosEstaticos();
@@ -353,7 +358,8 @@ function mostrarConfirmacion() {
   }, 100);
 }
 
-async function registrarEstudiante(event) {
+// NUEVA FUNCIÓN: Verificar documento antes de mostrar el formulario
+async function verificarDocumento(event) {
   event.preventDefault();
   
   const doc = document.getElementById('regDocumento').value;
@@ -363,6 +369,40 @@ async function registrarEstudiante(event) {
     mostrarMensaje('mensajeRegistro', validacion.mensaje, 'error');
     return;
   }
+  
+  mostrarCargando('mensajeRegistro');
+
+  try {
+    const existing = await supabaseQuery('estudiantes', {
+      eq: { field: 'documento', value: doc }
+    });
+
+    if (existing.length > 0) {
+      mostrarMensaje('mensajeRegistro', 'Este documento ya está registrado en el sistema. Si necesita actualizar sus datos, contacte al administrador.', 'error');
+      return;
+    }
+
+    // Si el documento NO está registrado, mostrar el formulario completo
+    document.getElementById('mensajeRegistro').innerHTML = '';
+    document.getElementById('pasoDocumento').classList.add('hidden');
+    document.getElementById('formRegistro').classList.remove('hidden');
+    document.getElementById('regDocumentoMostrar').value = doc;
+    
+    // Hacer scroll al inicio del formulario
+    setTimeout(() => {
+      document.getElementById('formRegistro').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
+  } catch (error) {
+    mostrarMensaje('mensajeRegistro', 'Error al verificar el documento: ' + error.message, 'error');
+  }
+}
+
+// FUNCIÓN MODIFICADA: Registrar estudiante (sin verificación de documento duplicado)
+async function registrarEstudiante(event) {
+  event.preventDefault();
+  
+  const doc = document.getElementById('regDocumentoMostrar').value;
   
   mostrarCargando('mensajeRegistro');
 
@@ -378,15 +418,6 @@ async function registrarEstudiante(event) {
   };
 
   try {
-    const existing = await supabaseQuery('estudiantes', {
-      eq: { field: 'documento', value: datos.documento }
-    });
-
-    if (existing.length > 0) {
-      mostrarMensaje('mensajeRegistro', 'Este documento ya está registrado', 'error');
-      return;
-    }
-
     const resultado = await supabaseInsert('estudiantes', datos);
     
     if (resultado && resultado.length > 0) {
