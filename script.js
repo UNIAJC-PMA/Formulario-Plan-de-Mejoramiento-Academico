@@ -478,16 +478,6 @@ async function iniciarSesion(event) {
       return;
     }
 
-    // NUEVO: Verificar si tiene un registro reciente (últimas 2 horas)
-    const verificacion = await verificarRegistroReciente(documento);
-    if (!verificacion.puedeRegistrar) {
-      const tiempoRestante = verificacion.tiempoRestante;
-      mostrarMensaje('mensajeLogin', 
-        `Ya has registrado una tutoría recientemente. Podrás registrar otra tutoría en ${tiempoRestante}.`, 
-        'error');
-      return;
-    }
-
     const estudiante = data[0];
     const nombres = `${estudiante.primer_nombre} ${estudiante.segundo_nombre || ''}`.trim();
     const apellidos = `${estudiante.primer_apellido} ${estudiante.segundo_apellido}`.trim();
@@ -500,8 +490,7 @@ async function iniciarSesion(event) {
       nombreCensurado: censurarNombre(nombreCompleto),
       facultad: estudiante.facultad,
       programa: estudiante.programa,
-      sede: estudiante.sede || '',
-      instructoresRecientes: verificacion.instructoresRecientes || [] // NUEVO: Lista de instructores usados
+      sede: estudiante.sede || ''
     };
 
     formularioEnviandose = false;
@@ -520,7 +509,10 @@ async function iniciarSesion(event) {
 // ===================================
 // VERIFICAR REGISTRO RECIENTE (2 HORAS)
 // ===================================
-async function verificarRegistroReciente(documento) {
+// ===================================
+// VERIFICAR REGISTRO RECIENTE CON INSTRUCTOR ESPECÍFICO
+// ===================================
+async function verificarRegistroRecenteConInstructor(documento, instructorSeleccionado) {
   try {
     // Obtener la fecha y hora actual en Colombia (UTC-5)
     const ahora = new Date();
@@ -530,8 +522,8 @@ async function verificarRegistroReciente(documento) {
     const hace2Horas = new Date(ahoraColombia.getTime() - (2 * 60 * 60 * 1000));
     const hace2HorasISO = hace2Horas.toISOString();
     
-    // Consultar registros de las últimas 2 horas
-    const url = `${SUPABASE_URL}/rest/v1/formularios?documento=eq.${documento}&fecha=gte.${hace2HorasISO}&order=fecha.desc`;
+    // Consultar registros de las últimas 2 horas CON EL MISMO INSTRUCTOR
+    const url = `${SUPABASE_URL}/rest/v1/formularios?documento=eq.${documento}&instructor=eq.${encodeURIComponent(instructorSeleccionado)}&fecha=gte.${hace2HorasISO}&order=fecha.desc`;
     
     const response = await fetch(url, {
       headers: {
@@ -543,14 +535,11 @@ async function verificarRegistroReciente(documento) {
     const registrosRecientes = await response.json();
     
     if (registrosRecientes.length === 0) {
-      // No hay registros recientes, puede registrar
-      return { puedeRegistrar: true, instructoresRecientes: [] };
+      // No hay registros recientes con este instructor, puede registrar
+      return { puedeRegistrar: true };
     }
     
-    // Obtener lista de instructores usados en las últimas 2 horas
-    const instructoresRecientes = registrosRecientes.map(reg => reg.instructor);
-    
-    // Obtener el registro más reciente
+    // Obtener el registro más reciente con este instructor
     const registroMasReciente = registrosRecientes[0];
     const fechaRegistro = new Date(registroMasReciente.fecha);
     const fechaRegistroColombia = new Date(fechaRegistro.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
@@ -572,13 +561,13 @@ async function verificarRegistroReciente(documento) {
     return {
       puedeRegistrar: false,
       tiempoRestante: tiempoRestante,
-      instructoresRecientes: instructoresRecientes
+      instructor: instructorSeleccionado
     };
     
   } catch (error) {
     console.error('Error verificando registro reciente:', error);
     // En caso de error, permitir el registro
-    return { puedeRegistrar: true, instructoresRecientes: [] };
+    return { puedeRegistrar: true };
   }
 }
 
@@ -878,12 +867,16 @@ async function guardarFormulario(event) {
     return;
   }
   
+  mostrarCargando('mensajeFormulario');
+  
   // NUEVO: Verificar si el instructor seleccionado ya fue usado en las últimas 2 horas
   const instructorSeleccionado = document.getElementById('instructor').value;
   
-  if (datosEstudiante.instructoresRecientes && datosEstudiante.instructoresRecientes.includes(instructorSeleccionado)) {
+  const verificacion = await verificarRegistroRecenteConInstructor(datosEstudiante.documento, instructorSeleccionado);
+  
+  if (!verificacion.puedeRegistrar) {
     mostrarMensaje('mensajeFormulario', 
-      'Ya has registrado una tutoría con este instructor en las últimas 2 horas. Por favor selecciona un instructor diferente o espera un momento.', 
+      `Ya has registrado una tutoría con ${verificacion.instructor} en las últimas 2 horas. Podrás registrar otra tutoría con este instructor en ${verificacion.tiempoRestante}. Puedes seleccionar un instructor diferente si lo deseas.`, 
       'error');
     
     setTimeout(() => {
@@ -895,8 +888,6 @@ async function guardarFormulario(event) {
     
     return;
   }
-  
-  mostrarCargando('mensajeFormulario');
 
   let tema = document.getElementById('tema').value;
   if (tema === 'Otro') {
@@ -930,7 +921,7 @@ async function guardarFormulario(event) {
     sede_tutoria: document.getElementById('sedeTutoria').value,
     tipo_instructor: document.getElementById('tipoInstructor').value,
     facultad_departamento: facultadDepartamentoValue,
-    instructor: document.getElementById('instructor').value,
+    instructor: instructorSeleccionado,
     asignatura: document.getElementById('asignatura').value,
     tema: tema,
     motivo_consulta: document.getElementById('motivoConsulta').value,
