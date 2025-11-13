@@ -1296,22 +1296,40 @@ async function descargarTodo() {
 }
 
 async function descargarDocentes() {
-  if (!confirm('¿Está seguro de descargar el reporte de docentes?')) {
+  const desde = document.getElementById('fechaDesde').value;
+  const hasta = document.getElementById('fechaHasta').value;
+
+  if (!desde || !hasta) {
+    alert('Por favor seleccione ambas fechas');
+    return;
+  }
+
+  if (new Date(desde) > new Date(hasta)) {
+    alert('La fecha inicial no puede ser mayor que la fecha final');
     return;
   }
 
   try {
-    // Filtrar solo los registros donde tipo_instructor sea "Profesor"
-    const data = await supabaseQuery('formularios', { order: 'fecha.asc' });
+    let url = `${SUPABASE_URL}/rest/v1/formularios?fecha=gte.${desde}T00:00:00&fecha=lte.${hasta}T23:59:59&order=fecha.asc`;
     
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    
+    const data = await response.json();
+    
+    // Filtrar solo profesores
     const datosDocentes = data.filter(item => item.tipo_instructor === 'Profesor');
     
     if (datosDocentes.length === 0) {
-      alert('No hay registros de docentes para descargar');
+      alert('No hay registros de docentes en el rango de fechas seleccionado');
       return;
     }
 
-    generarExcelDocentes(datosDocentes, 'PMA_Docentes');
+    generarExcelDocentes(datosDocentes, `PMA_Docentes_${desde}_a_${hasta}`);
     alert(`${datosDocentes.length} registros de docentes descargados exitosamente`);
   } catch (error) {
     alert('Error al descargar datos: ' + error.message);

@@ -1116,18 +1116,20 @@ textarea {
   border: 2px solid #1e3c72;
 }
 
+/* Botón activo en azul claro */
 .estadisticas-menu-wrapper .btn-sede.activo {
-  background: #1e3c72;
+  background: #4a90e2;
   color: white;
-  border-color: #1e3c72;
-}
-
-.estadisticas-menu-wrapper .btn-sede:hover {
-  background: #f5f5f5;
+  border-color: #4a90e2;
 }
 
 .estadisticas-menu-wrapper .btn-sede.activo:hover {
-  background: #2a5298;
+  background: #5ca3f5;
+  border-color: #5ca3f5;
+}
+
+.estadisticas-menu-wrapper .btn-sede.activo:hover {
+  background: #5886d6;
   border-color: #2a5298;
 }
 
