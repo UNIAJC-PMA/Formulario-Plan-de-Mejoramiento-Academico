@@ -1084,3 +1084,23 @@ textarea {
 .footer-content a:hover {
   color: #002E5D;
 }
+
+
+
+/* ===================================
+   BOTONES DE ESTADÍSTICAS
+   =================================== */
+.botones-sedes.estadisticas-menu {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+}
+
+.botones-sedes.estadisticas-menu .btn-sede {
+  flex: 0 1 auto;
+  min-width: 100px;
+  padding: 10px 20px;
+  font-size: 13px;
+}

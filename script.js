@@ -912,7 +912,7 @@ async function cargarEstadisticas() {
 
     // Crear HTML con botones de filtro
     const botonesHTML = `
-      <div class="botones-sedes" style="margin-bottom: 25px;">
+      <div class="botones-sedes estadisticas-menu">
         <button class="btn btn-secondary btn-sede" onclick="mostrarEstadisticas('general')">
           General
         </button>
@@ -1019,9 +1019,33 @@ function mostrarEstadisticas(tipo) {
     }
   });
 
-  const tituloTipo = tipo === 'tutores' ? 'Tutorías' : tipo === 'profesores' ? 'Asesorías con Profesores' : 'Registros Totales';
-
   const grid = document.getElementById('contenidoEstadisticas');
+  
+  // GENERAL: Solo 3 cards
+  if (tipo === 'general') {
+    grid.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>${stats.total}</h3>
+          <p>Total de Registros</p>
+        </div>
+        <div class="stat-card">
+          <h3>${promedioCalificacion}</h3>
+          <p>Calificación Promedio</p>
+        </div>
+        <div class="stat-card">
+          <h3>${mejorInstructor.nombre}</h3>
+          <p>Mejor Calificación (${mejorInstructor.promedio})</p>
+        </div>
+      </div>
+    `;
+    document.getElementById('detallesStats').innerHTML = '';
+    return;
+  }
+
+  // TUTORES y PROFESORES: Cards completos
+  const tituloTipo = tipo === 'tutores' ? 'Tutorías' : 'Asesorías con Profesores';
+
   grid.innerHTML = `
     <div class="stats-grid">
       <div class="stat-card">
@@ -1041,15 +1065,15 @@ function mostrarEstadisticas(tipo) {
 
   let detalles = '';
 
-  detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de ' + tituloTipo + ' por Sede</h3>';
-  Object.entries(stats.sedesTutorias).forEach(([sede, cantidad]) => {
-    const porcentaje = ((cantidad / stats.total) * 100).toFixed(1);
-    detalles += `<div class="list-item"><span>Sede ${sede}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
-  });
-  detalles += '</div>';
-
-  // Solo mostrar detalle de instructores para tutores
+  // TUTORES: Mostrar por sede
   if (tipo === 'tutores') {
+    detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Tutorías por Sede</h3>';
+    Object.entries(stats.sedesTutorias).forEach(([sede, cantidad]) => {
+      const porcentaje = ((cantidad / stats.total) * 100).toFixed(1);
+      detalles += `<div class="list-item"><span>Sede ${sede}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+    detalles += '</div>';
+
     detalles += `<div class="chart-container">
       <h3 class="chart-title">Cantidad de Tutorías por Tutor</h3>
       
@@ -1101,7 +1125,7 @@ function mostrarEstadisticas(tipo) {
     detalles += '</div></div>';
   }
 
-  // Para profesores: mostrar por facultad/departamento
+  // PROFESORES: Solo mostrar por facultad/departamento (SIN sección de sede)
   if (tipo === 'profesores') {
     detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Asesorías por Facultad/Departamento</h3>';
     
