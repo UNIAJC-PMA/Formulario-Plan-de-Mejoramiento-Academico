@@ -478,6 +478,16 @@ async function iniciarSesion(event) {
       return;
     }
 
+    // NUEVO: Verificar si tiene un registro reciente (últimas 2 horas)
+    const verificacion = await verificarRegistroReciente(documento);
+    if (!verificacion.puedeRegistrar) {
+      const tiempoRestante = verificacion.tiempoRestante;
+      mostrarMensaje('mensajeLogin', 
+        `Ya has registrado una tutoría recientemente. Podrás registrar otra tutoría en ${tiempoRestante}.`, 
+        'error');
+      return;
+    }
+
     const estudiante = data[0];
     const nombres = `${estudiante.primer_nombre} ${estudiante.segundo_nombre || ''}`.trim();
     const apellidos = `${estudiante.primer_apellido} ${estudiante.segundo_apellido}`.trim();
@@ -490,7 +500,8 @@ async function iniciarSesion(event) {
       nombreCensurado: censurarNombre(nombreCompleto),
       facultad: estudiante.facultad,
       programa: estudiante.programa,
-      sede: estudiante.sede || ''
+      sede: estudiante.sede || '',
+      instructoresRecientes: verificacion.instructoresRecientes || [] // NUEVO: Lista de instructores usados
     };
 
     formularioEnviandose = false;
@@ -504,6 +515,73 @@ async function iniciarSesion(event) {
     mostrarMensaje('mensajeLogin', 'Error de conexión: ' + error.message, 'error');
   }
 }
+
+
+// ===================================
+// VERIFICAR REGISTRO RECIENTE (2 HORAS)
+// ===================================
+async function verificarRegistroReciente(documento) {
+  try {
+    // Obtener la fecha y hora actual en Colombia (UTC-5)
+    const ahora = new Date();
+    const ahoraColombia = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+    
+    // Calcular hace 2 horas
+    const hace2Horas = new Date(ahoraColombia.getTime() - (2 * 60 * 60 * 1000));
+    const hace2HorasISO = hace2Horas.toISOString();
+    
+    // Consultar registros de las últimas 2 horas
+    const url = `${SUPABASE_URL}/rest/v1/formularios?documento=eq.${documento}&fecha=gte.${hace2HorasISO}&order=fecha.desc`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    
+    const registrosRecientes = await response.json();
+    
+    if (registrosRecientes.length === 0) {
+      // No hay registros recientes, puede registrar
+      return { puedeRegistrar: true, instructoresRecientes: [] };
+    }
+    
+    // Obtener lista de instructores usados en las últimas 2 horas
+    const instructoresRecientes = registrosRecientes.map(reg => reg.instructor);
+    
+    // Obtener el registro más reciente
+    const registroMasReciente = registrosRecientes[0];
+    const fechaRegistro = new Date(registroMasReciente.fecha);
+    const fechaRegistroColombia = new Date(fechaRegistro.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+    
+    // Calcular tiempo transcurrido en minutos
+    const tiempoTranscurrido = Math.floor((ahoraColombia - fechaRegistroColombia) / (1000 * 60));
+    const tiempoRestanteMinutos = 120 - tiempoTranscurrido;
+    
+    // Formatear tiempo restante
+    let tiempoRestante;
+    if (tiempoRestanteMinutos >= 60) {
+      const horas = Math.floor(tiempoRestanteMinutos / 60);
+      const minutos = tiempoRestanteMinutos % 60;
+      tiempoRestante = minutos > 0 ? `${horas} hora(s) y ${minutos} minuto(s)` : `${horas} hora(s)`;
+    } else {
+      tiempoRestante = `${tiempoRestanteMinutos} minuto(s)`;
+    }
+    
+    return {
+      puedeRegistrar: false,
+      tiempoRestante: tiempoRestante,
+      instructoresRecientes: instructoresRecientes
+    };
+    
+  } catch (error) {
+    console.error('Error verificando registro reciente:', error);
+    // En caso de error, permitir el registro
+    return { puedeRegistrar: true, instructoresRecientes: [] };
+  }
+}
+
 
 // ===================================
 // CARGAR INSTRUCTORES - MODIFICADO
@@ -800,6 +878,24 @@ async function guardarFormulario(event) {
     return;
   }
   
+  // NUEVO: Verificar si el instructor seleccionado ya fue usado en las últimas 2 horas
+  const instructorSeleccionado = document.getElementById('instructor').value;
+  
+  if (datosEstudiante.instructoresRecientes && datosEstudiante.instructoresRecientes.includes(instructorSeleccionado)) {
+    mostrarMensaje('mensajeFormulario', 
+      'Ya has registrado una tutoría con este instructor en las últimas 2 horas. Por favor selecciona un instructor diferente o espera un momento.', 
+      'error');
+    
+    setTimeout(() => {
+      document.getElementById('grupoInstructor').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }, 100);
+    
+    return;
+  }
+  
   mostrarCargando('mensajeFormulario');
 
   let tema = document.getElementById('tema').value;
@@ -812,7 +908,7 @@ async function guardarFormulario(event) {
     ? document.getElementById('tituloCurso').value.toUpperCase() 
     : null;
   
-// Obtener fecha y hora actual en Colombia (UTC-5)
+  // Obtener fecha y hora actual en Colombia (UTC-5)
   const ahora = new Date();
   const fechaColombia = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
   const fechaISO = fechaColombia.toISOString();
