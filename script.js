@@ -229,7 +229,7 @@ function mostrarMensaje(elementId, mensaje, tipo) {
     elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 100);
   
-  setTimeout(() => elemento.innerHTML = '', 5000);
+  setTimeout(() => elemento.innerHTML = '', 10000);
 }
 
 function mostrarCargando(elementId) {
@@ -507,9 +507,6 @@ async function iniciarSesion(event) {
 
 
 // ===================================
-// VERIFICAR REGISTRO RECIENTE (2 HORAS)
-// ===================================
-// ===================================
 // VERIFICAR REGISTRO RECIENTE CON INSTRUCTOR ESPECÍFICO
 // ===================================
 async function verificarRegistroRecenteConInstructor(documento, instructorSeleccionado) {
@@ -518,12 +515,12 @@ async function verificarRegistroRecenteConInstructor(documento, instructorSelecc
     const ahora = new Date();
     const ahoraColombia = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
     
-    // Calcular hace 2 horas
-    const hace2Horas = new Date(ahoraColombia.getTime() - (2 * 60 * 60 * 1000));
-    const hace2HorasISO = hace2Horas.toISOString();
+    // Calcular hace 1 hora y 30 minutos (90 minutos)
+    const hace90Minutos = new Date(ahoraColombia.getTime() - (90 * 60 * 1000));
+    const hace90MinutosISO = hace90Minutos.toISOString();
     
-    // Consultar registros de las últimas 2 horas CON EL MISMO INSTRUCTOR
-    const url = `${SUPABASE_URL}/rest/v1/formularios?documento=eq.${documento}&instructor=eq.${encodeURIComponent(instructorSeleccionado)}&fecha=gte.${hace2HorasISO}&order=fecha.desc`;
+    // Consultar registros de los últimos 90 minutos CON EL MISMO INSTRUCTOR
+    const url = `${SUPABASE_URL}/rest/v1/formularios?documento=eq.${documento}&instructor=eq.${encodeURIComponent(instructorSeleccionado)}&fecha=gte.${hace90MinutosISO}&order=fecha.desc`;
     
     const response = await fetch(url, {
       headers: {
@@ -546,16 +543,16 @@ async function verificarRegistroRecenteConInstructor(documento, instructorSelecc
     
     // Calcular tiempo transcurrido en minutos
     const tiempoTranscurrido = Math.floor((ahoraColombia - fechaRegistroColombia) / (1000 * 60));
-    const tiempoRestanteMinutos = 120 - tiempoTranscurrido;
+    const tiempoRestanteMinutos = 90 - tiempoTranscurrido;
     
     // Formatear tiempo restante
     let tiempoRestante;
     if (tiempoRestanteMinutos >= 60) {
       const horas = Math.floor(tiempoRestanteMinutos / 60);
       const minutos = tiempoRestanteMinutos % 60;
-      tiempoRestante = minutos > 0 ? `${horas} hora(s) y ${minutos} minuto(s)` : `${horas} hora(s)`;
+      tiempoRestante = minutos > 0 ? `${horas} hora y ${minutos} minutos` : `${horas} hora`;
     } else {
-      tiempoRestante = `${tiempoRestanteMinutos} minuto(s)`;
+      tiempoRestante = `${tiempoRestanteMinutos} minutos`;
     }
     
     return {
@@ -869,18 +866,19 @@ async function guardarFormulario(event) {
   
   mostrarCargando('mensajeFormulario');
   
-  // NUEVO: Verificar si el instructor seleccionado ya fue usado en las últimas 2 horas
+  // NUEVO: Verificar si el instructor seleccionado ya fue usado en los últimos 90 minutos
   const instructorSeleccionado = document.getElementById('instructor').value;
   
   const verificacion = await verificarRegistroRecenteConInstructor(datosEstudiante.documento, instructorSeleccionado);
   
   if (!verificacion.puedeRegistrar) {
     mostrarMensaje('mensajeFormulario', 
-      `Ya has registrado una tutoría con ${verificacion.instructor} en las últimas 2 horas. Podrás registrar otra tutoría con este instructor en ${verificacion.tiempoRestante}. Puedes seleccionar un instructor diferente si lo deseas.`, 
+      `Ya tienes una tutoría reciente con este tutor. Podrás registrar otra en ${verificacion.tiempoRestante}, o puedes realizarla con otro tutor si lo prefieres.`, 
       'error');
     
     setTimeout(() => {
-      document.getElementById('grupoInstructor').scrollIntoView({ 
+      const mensajeElement = document.getElementById('mensajeFormulario');
+      mensajeElement.scrollIntoView({ 
         behavior: 'smooth', 
         block: 'center' 
       });
