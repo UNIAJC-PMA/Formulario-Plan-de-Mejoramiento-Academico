@@ -434,18 +434,23 @@
     </div>
 
     <!-- PANEL DE ADMINISTRADOR - LOGIN -->
-    <div id="pantallaAdminLogin" class="hidden">
-      <h2 class="section-title">Acceso de Administrador</h2>
-      <div id="mensajeAdminLogin"></div>
-      <form id="formAdminLogin" onsubmit="loginAdmin(event)">
-        <div class="form-group">
-          <label>Documento de Administrador</label>
-          <input type="number" id="adminDocumento" required>
-        </div>
-        <button type="submit" class="btn">Ingresar</button>
-        <button type="button" class="btn btn-secondary" onclick="volverInicio()">Volver</button>
-      </form>
+    <!-- PANEL DE ADMINISTRADOR - LOGIN -->
+<div id="pantallaAdminLogin" class="hidden">
+  <h2 class="section-title">Acceso de Administrador</h2>
+  <div id="mensajeAdminLogin"></div>
+  <form id="formAdminLogin" onsubmit="loginAdmin(event)">
+    <div class="form-group">
+      <label>Documento de Administrador</label>
+      <input type="number" id="adminDocumento" required>
     </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" id="adminContrasena" required>
+    </div>
+    <button type="submit" class="btn">Ingresar</button>
+    <button type="button" class="btn btn-secondary" onclick="volverInicio()">Volver</button>
+  </form>
+</div>
 
     <!-- PANEL DE ADMINISTRADOR -->
     <div id="pantallaAdmin" class="hidden">

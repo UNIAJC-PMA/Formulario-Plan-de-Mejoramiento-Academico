@@ -1128,14 +1128,16 @@ async function loginAdmin(event) {
   mostrarCargando('mensajeAdminLogin');
 
   const documento = document.getElementById('adminDocumento').value;
+  const contrasena = document.getElementById('adminContrasena').value;
 
   try {
     const data = await supabaseQuery('administradores', {
       eq: { field: 'documento', value: documento }
     });
 
-    if (data.length === 0) {
-      mostrarMensaje('mensajeAdminLogin', 'Acceso denegado. Documento no autorizado.', 'error');
+    // Verificar que el documento existe Y que la contraseña coincida
+    if (data.length === 0 || data[0].contra !== contrasena) {
+      mostrarMensaje('mensajeAdminLogin', 'Acceso denegado.', 'error');
       return;
     }
 
