@@ -710,15 +710,21 @@ function cargarTemas() {
     containerAsignatura.classList.remove('hidden');
     inputAsignatura.required = true;
     
-    // Mostrar campo de tema personalizado directamente
+    // Mostrar grupo de tema con campo de texto personalizado
     document.getElementById('grupoTema').classList.remove('hidden');
     const selectTema = document.getElementById('tema');
-    selectTema.innerHTML = '<option value="Otro">Otro: ¿Cuál?</option>';
-    selectTema.value = 'Otro';
+    selectTema.innerHTML = '';
+    selectTema.style.display = 'none'; // Ocultar el select
     
     // Mostrar campo de texto para tema personalizado
-    document.getElementById('otroTemaContainer').classList.remove('hidden');
-    document.getElementById('otroTema').required = true;
+    const containerTema = document.getElementById('otroTemaContainer');
+    const inputTema = document.getElementById('otroTema');
+    containerTema.classList.remove('hidden');
+    inputTema.required = true;
+    
+    // Cambiar el label de tema
+    const labelTema = document.querySelector('#grupoTema label');
+    labelTema.textContent = 'Tema: Especifique el tema *';
     
     document.getElementById('grupoMotivo').classList.remove('hidden');
     document.getElementById('grupoCalificacion').classList.remove('hidden');
@@ -733,6 +739,14 @@ function cargarTemas() {
     containerAsignatura.classList.add('hidden');
     inputAsignatura.required = false;
     inputAsignatura.value = '';
+    
+    // Restaurar el select de tema
+    const selectTema = document.getElementById('tema');
+    selectTema.style.display = '';
+    
+    // Restaurar el label original
+    const labelTema = document.querySelector('#grupoTema label');
+    labelTema.textContent = 'Tema de la tutoría *';
   }
 
   document.getElementById('grupoTema').classList.remove('hidden');
