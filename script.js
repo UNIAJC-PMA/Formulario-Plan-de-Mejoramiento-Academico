@@ -164,6 +164,26 @@ function procesarFacultadesData() {
   });
 }
 
+
+function limpiarEspacios(input) {
+  const valorOriginal = input.value;
+  
+  // Limpiar espacios
+  let valor = input.value.trim();
+  valor = valor.replace(/\s+/g, ' ');
+  
+  // Si cambió algo, hacer un pequeño efecto
+  if (valorOriginal !== valor) {
+    input.value = valor;
+    input.style.backgroundColor = '#e8f4fd';
+    setTimeout(() => {
+      input.style.backgroundColor = '';
+    }, 300);
+  }
+}
+
+
+
 // ===================================
 // FUNCIONES DE NAVEGACIÓN
 // ===================================
