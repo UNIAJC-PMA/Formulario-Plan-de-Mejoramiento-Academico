@@ -498,8 +498,8 @@ textarea {
 }
 
 .btn-actualizar:hover {
-  background: #218838;
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.5);
+  background: #321edf;
+  box-shadow: 0 4px 12px rgba(18, 106, 207, 0.5);
 }
 
 .btn-actualizar:active {
