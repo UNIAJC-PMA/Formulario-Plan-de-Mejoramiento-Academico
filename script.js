@@ -1341,7 +1341,8 @@ function mostrarEstadisticas(tipo, botonClickeado) {
 
   let detalles = '';
 
-  // TUTORES: Mostrar por sede
+  
+// TUTORES: Mostrar por sede
   if (tipo === 'tutores') {
     detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Tutorías por Sede</h3>';
     Object.entries(stats.sedesTutorias).forEach(([sede, cantidad]) => {
@@ -1349,6 +1350,23 @@ function mostrarEstadisticas(tipo, botonClickeado) {
       detalles += `<div class="list-item"><span>Sede ${sede}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
     });
     detalles += '</div>';
+
+    // Agrupar tutores por su sede REAL (según tabla de origen)
+    const tutoresPorSedeReal = { Norte: {}, Sur: {} };
+    
+    datosFiltrados.forEach(item => {
+      const instructor = item.instructor;
+      
+      // Buscar en qué tabla está el tutor
+      const esTutorNorte = datosCache.tutoresNorte.some(t => t.nombre === instructor);
+      const esTutorSur = datosCache.tutoresSur.some(t => t.nombre === instructor);
+      
+      if (esTutorNorte) {
+        tutoresPorSedeReal.Norte[instructor] = (tutoresPorSedeReal.Norte[instructor] || 0) + 1;
+      } else if (esTutorSur) {
+        tutoresPorSedeReal.Sur[instructor] = (tutoresPorSedeReal.Sur[instructor] || 0) + 1;
+      }
+    });
 
     detalles += `<div class="chart-container">
       <h3 class="chart-title">Cantidad de Tutorías por Tutor</h3>
@@ -1365,7 +1383,7 @@ function mostrarEstadisticas(tipo, botonClickeado) {
       <div id="instructoresNorteAdmin" class="horario-info hidden">
         <h4 class="horario-titulo">Sede Norte</h4>`;
     
-    const instructoresNorte = Object.entries(stats.instructoresPorSede.Norte || {})
+    const instructoresNorte = Object.entries(tutoresPorSedeReal.Norte)
       .sort((a, b) => b[1] - a[1]);
     if (instructoresNorte.length > 0) {
       instructoresNorte.forEach(([instructor, cantidad]) => {
@@ -1384,7 +1402,7 @@ function mostrarEstadisticas(tipo, botonClickeado) {
       <div id="instructoresSurAdmin" class="horario-info hidden">
         <h4 class="horario-titulo">Sede Sur</h4>`;
     
-    const instructoresSur = Object.entries(stats.instructoresPorSede.Sur || {})
+    const instructoresSur = Object.entries(tutoresPorSedeReal.Sur)
       .sort((a, b) => b[1] - a[1]);
     if (instructoresSur.length > 0) {
       instructoresSur.forEach(([instructor, cantidad]) => {
@@ -1903,7 +1921,7 @@ function togglePassword() {
   
   if (input.type === 'password') {
     input.type = 'text';
-    button.textContent = '🙈';
+    button.textContent = '--';
   } else {
     input.type = 'password';
     button.textContent = '👁️';
