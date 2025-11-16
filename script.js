@@ -1,5 +1,5 @@
 
-// URL dividida en partes
+// URL
 const p1 = 'https://';
 const p2 = 'vkfjtt';
 const p3 = 'ukyrti';
@@ -8,7 +8,7 @@ const p5 = 'uk.supa';
 const p6 = 'base.co';
 const SUPABASE_URL = p1 + p2 + p3 + p4 + p5 + p6;
 
-// KEY dividida en partes
+// KEY
 const k1 = 'eyJhbGciOiJIUzI1';
 const k2 = 'NiIsInR5cCI6IkpXVCJ9.';
 const k3 = 'eyJpc3MiOiJzdXBhYmFzZS';
@@ -450,6 +450,13 @@ async function registrarEstudiante(event) {
   event.preventDefault();
   
   const doc = document.getElementById('regDocumentoMostrar').value;
+  const btnRegistro = document.getElementById('btnConfirmarRegistro');
+  
+  // Desactivar botón para evitar doble click
+  btnRegistro.disabled = true;
+  btnRegistro.textContent = '⏳ Registrando...';
+  btnRegistro.style.opacity = '0.6';
+  btnRegistro.style.cursor = 'not-allowed';
   
   mostrarCargando('mensajeRegistro');
 
@@ -481,9 +488,19 @@ async function registrarEstudiante(event) {
       }, 3000);
     } else {
       mostrarMensaje('mensajeRegistro', 'Error: No se pudo completar el registro', 'error');
+      // Reactivar botón si falla
+      btnRegistro.disabled = false;
+      btnRegistro.textContent = 'Confirmar y Registrarme';
+      btnRegistro.style.opacity = '1';
+      btnRegistro.style.cursor = 'pointer';
     }
   } catch (error) {
     mostrarMensaje('mensajeRegistro', error.message, 'error');
+    // Reactivar botón si hay error
+    btnRegistro.disabled = false;
+    btnRegistro.textContent = 'Confirmar y Registrarme';
+    btnRegistro.style.opacity = '1';
+    btnRegistro.style.cursor = 'pointer';
   }
 }
 
@@ -1009,6 +1026,8 @@ function mostrarModalConfirmacion(titulo, mensaje, callbackConfirmar) {
 async function guardarFormulario(event) {
   event.preventDefault();
   
+  const btnEnviar = document.getElementById('btnEnviar');
+  
   // Validar la calificación
   const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
   
@@ -1048,6 +1067,12 @@ async function guardarFormulario(event) {
     return;
   }
   
+  // Desactivar botón para evitar doble envío
+  btnEnviar.disabled = true;
+  btnEnviar.textContent = '⏳ Enviando...';
+  btnEnviar.style.opacity = '0.6';
+  btnEnviar.style.cursor = 'not-allowed';
+  
   mostrarCargando('mensajeFormulario');
   
   // NUEVO: Verificar si el instructor seleccionado ya fue usado en los últimos 90 minutos
@@ -1060,6 +1085,12 @@ async function guardarFormulario(event) {
       `Ya tienes una tutoría reciente con este tutor. Podrás registrar otra en ${verificacion.tiempoRestante}, o puedes realizarla con otro tutor si lo prefieres.`, 
       'error');
     
+    // Reactivar botón
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    btnEnviar.style.opacity = '1';
+    btnEnviar.style.cursor = 'pointer';
+    
     setTimeout(() => {
       const mensajeElement = document.getElementById('mensajeFormulario');
       mensajeElement.scrollIntoView({ 
@@ -1071,17 +1102,17 @@ async function guardarFormulario(event) {
     return;
   }
 
-// Obtener asignatura (puede ser personalizada)
-let asignatura = document.getElementById('asignatura').value;
-if (asignatura === 'Otra') {
-  asignatura = document.getElementById('otraAsignatura').value;
-}
+  // Obtener asignatura (puede ser personalizada)
+  let asignatura = document.getElementById('asignatura').value;
+  if (asignatura === 'Otra') {
+    asignatura = document.getElementById('otraAsignatura').value;
+  }
 
-// Obtener tema (puede ser personalizado)
-let tema = document.getElementById('tema').value;
-if (tema === 'Otro') {
-  tema = document.getElementById('otroTema').value;
-}
+  // Obtener tema (puede ser personalizado)
+  let tema = document.getElementById('tema').value;
+  if (tema === 'Otro') {
+    tema = document.getElementById('otroTema').value;
+  }
 
   const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
   const tituloCurso = tipoAcompanamiento === 'Curso y/o capacitación' 
@@ -1147,6 +1178,11 @@ if (tema === 'Otro') {
     }, 3000);
   } catch (error) {
     mostrarMensaje('mensajeFormulario', error.message, 'error');
+    // Reactivar botón si hay error
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    btnEnviar.style.opacity = '1';
+    btnEnviar.style.cursor = 'pointer';
   }
 }
 
@@ -1285,7 +1321,22 @@ async function cargarEstadisticas() {
   } catch (error) {
     console.error('Error cargando estadísticas:', error);
   }
+
+  const ahora = new Date().toLocaleString('es-CO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  document.getElementById('statsGrid').insertAdjacentHTML('afterbegin', 
+    `<p style="text-align: right; color: #666; font-size: 12px;">
+      Última actualización: ${ahora}
+    </p>`
+  );
 }
+
 
 function mostrarEstadisticas(tipo, botonClickeado) {
   // Remover clase activo de todos los botones

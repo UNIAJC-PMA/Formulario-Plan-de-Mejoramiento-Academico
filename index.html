@@ -175,7 +175,7 @@
         <form id="formVerificarDocumento" onsubmit="verificarDocumento(event)">
           <div class="form-group">
             <label>Documento de Identidad *</label>
-            <input type="text" id="regDocumento" required oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            <input type="tel" id="regDocumento" required pattern="[0-9]*" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </div>
           <button type="submit" class="btn">Continuar</button>
           <button type="button" class="btn btn-secondary" onclick="confirmarCancelacion()">Cancelar</button>
@@ -253,7 +253,7 @@
       <form id="formLogin" onsubmit="iniciarSesion(event)">
         <div class="form-group">
           <label>Documento de Identidad</label>
-          <input type="text" id="loginDocumento" required oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+          <input type="tel" id="loginDocumento" required pattern="[0-9]*" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
         </div>
         <button type="submit" class="btn">Continuar</button>
         <button type="button" class="btn btn-secondary" onclick="volverInicio()">Volver</button>
