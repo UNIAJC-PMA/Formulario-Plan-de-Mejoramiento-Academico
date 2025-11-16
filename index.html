@@ -441,7 +441,12 @@
   <form id="formAdminLogin" onsubmit="loginAdmin(event)">
     <div class="form-group">
       <label>Usuario</label>
-      <input type="text" id="adminDocumento" required>
+      <div style="position: relative;">
+        <input type="password" id="adminDocumento" required style="padding-right: 45px;">
+        <button type="button" onclick="toggleUsername()" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 20px; padding: 5px 10px; color: #666;">
+          👁️
+        </button>
+      </div>
     </div>
     <div class="form-group">
       <label>🔒 Contraseña</label>

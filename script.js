@@ -2188,6 +2188,22 @@ function togglePassword() {
   }
 }
 
+// ===================================
+// MOSTRAR/OCULTAR USUARIO
+// ===================================
+function toggleUsername() {
+  const input = document.getElementById('adminDocumento');
+  const button = input.nextElementSibling;
+  
+  if (input.type === 'password') {
+    input.type = 'text';
+    button.textContent = '--';
+  } else {
+    input.type = 'password';
+    button.textContent = '👁️';
+  }
+}
+
 
 // ===================================
 // GRÁFICAS
