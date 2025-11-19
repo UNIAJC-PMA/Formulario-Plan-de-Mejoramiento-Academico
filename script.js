@@ -345,10 +345,6 @@ function toggleHorario(sede) {
 }
 
 function volverInicio() {
-  // Limpiar el historial
-  pantallaActual = 'pantallaInicio';
-  historialNavegacion = ['pantallaInicio'];
-  
   mostrarPantalla('pantallaInicio');
   limpiarFormularios();
   formularioEnviandose = false;
