@@ -1,4 +1,3 @@
-
 // URL
 const p1 = 'https://';
 const p2 = 'vkfjtt';
@@ -21,44 +20,24 @@ const k9 = 'eU8GeI8IVazXydMDwY98';
 const k10 = 'TUzT9xvjhcbXBu6cruCPiEk';
 const SUPABASE_KEY = k1 + k2 + k3 + k4 + k5 + k6 + k7 + k8 + k9 + k10;
 
+// ===================================
+// CONSTANTES
+// ===================================
+const NOMBRES_FACULTADES = {
+  'DCB': 'Departamento de Ciencias Básicas',
+  'FCE': 'Facultad de Ciencias Empresariales',
+  'FCSH': 'Facultad de Ciencias Sociales y Humanas',
+  'FEDV': 'Facultad de Educación a Distancia y Virtual',
+  'FI': 'Facultad de Ingeniería'
+};
 
-// Variables globales
+// ===================================
+// VARIABLES GLOBALES
+// ===================================
 let datosEstudiante = null;
 let instructorActual = null;
 let formularioEnviandose = false;
 let graficoTutorias = null;
-
-
-// ===================================
-// FUNCIÓN DE REINTENTOS AUTOMÁTICOS
-// ===================================
-async function fetchConReintentos(url, options, intentos = 3) {
-  for (let i = 0; i < intentos; i++) {
-    try {
-      const response = await fetch(url, options);
-      
-      // Si la respuesta no es exitosa, lanzar error
-      if (!response.ok) {
-        throw new Error(`Error del servidor: ${response.status}`);
-      }
-      
-      return await response.json();
-      
-    } catch (error) {
-      console.log(`Intento ${i + 1} de ${intentos} falló:`, error.message);
-      
-      // Si es el último intento, lanzar el error
-      if (i === intentos - 1) {
-        throw new Error('No pudimos conectar con el servidor después de varios intentos. Por favor verifica tu conexión a internet e intenta de nuevo.');
-      }
-      
-      // Esperar antes de reintentar (1 segundo, luego 2 segundos, luego 3 segundos)
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-      console.log(`Reintentando...`);
-    }
-  }
-}
-
 
 // ===================================
 // CACHE DE DATOS PRECARGADOS
@@ -75,6 +54,95 @@ let datosCache = {
 let facultadesData = {};
 
 // ===================================
+// FUNCIÓN AUXILIAR PARA FECHAS
+// ===================================
+function convertirFechaAColombia(fechaUTC) {
+  const fecha = new Date(fechaUTC);
+  const fechaColombia = new Date(fecha.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+  
+  const horas = String(fechaColombia.getHours()).padStart(2, '0');
+  const minutos = String(fechaColombia.getMinutes()).padStart(2, '0');
+  const horaFormateada = `${horas}:${minutos}`;
+  
+  // Número de serie de Excel
+  const serialDate = (fechaColombia - new Date(1899, 11, 30)) / (24 * 60 * 60 * 1000);
+  
+  return { fechaColombia, horaFormateada, serialDate };
+}
+
+// ===================================
+// FUNCIÓN AUXILIAR PARA FORMATO EXCEL
+// ===================================
+function aplicarFormatoExcel(ws, range) {
+  // Formato de fecha DD/MM/YYYY en columna Fecha
+  for (let row = 1; row <= range.e.r; row++) {
+    const fechaCell = XLSX.utils.encode_cell({ r: row, c: 0 });
+    if (ws[fechaCell] && row > 0) {
+      ws[fechaCell].t = 'n';
+      ws[fechaCell].z = 'dd/mm/yyyy';
+    }
+  }
+  
+  // Formato numérico en columna Documento
+  for (let row = 1; row <= range.e.r; row++) {
+    const docCell = XLSX.utils.encode_cell({ r: row, c: 2 });
+    if (ws[docCell] && row > 0) {
+      ws[docCell].t = 'n';
+      ws[docCell].z = '0';
+    }
+  }
+  
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+}
+
+// ===================================
+// VALIDAR RANGO DE FECHAS
+// ===================================
+function validarRangoFechas() {
+  const desde = document.getElementById('fechaDesde').value;
+  const hasta = document.getElementById('fechaHasta').value;
+
+  if (!desde || !hasta) {
+    alert('Por favor seleccione ambas fechas');
+    return null;
+  }
+
+  if (new Date(desde) > new Date(hasta)) {
+    alert('La fecha inicial no puede ser mayor que la fecha final');
+    return null;
+  }
+
+  return { desde, hasta };
+}
+
+// ===================================
+// FUNCIÓN DE REINTENTOS AUTOMÁTICOS
+// ===================================
+async function fetchConReintentos(url, options, intentos = 3) {
+  for (let i = 0; i < intentos; i++) {
+    try {
+      const response = await fetch(url, options);
+      
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+      
+      return await response.json();
+      
+    } catch (error) {
+      console.log(`Intento ${i + 1} de ${intentos} falló:`, error.message);
+      
+      if (i === intentos - 1) {
+        throw new Error('No pudimos conectar con el servidor después de varios intentos. Por favor verifica tu conexión a internet e intenta de nuevo.');
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      console.log(`Reintentando...`);
+    }
+  }
+}
+
+// ===================================
 // FUNCIONES DE SUPABASE
 // ===================================
 async function supabaseQuery(table, options = {}) {
@@ -84,7 +152,6 @@ async function supabaseQuery(table, options = {}) {
   if (options.eq) url += `${options.select ? '&' : '?'}${options.eq.field}=eq.${options.eq.value}`;
   if (options.order) url += `${url.includes('?') ? '&' : '?'}order=${options.order}`;
   
-  // AHORA USA fetchConReintentos en vez de fetch normal
   return await fetchConReintentos(url, {
     headers: {
       'apikey': SUPABASE_KEY,
@@ -95,7 +162,6 @@ async function supabaseQuery(table, options = {}) {
 }
 
 async function supabaseInsert(table, data) {
-  // AHORA USA fetchConReintentos en vez de fetch normal
   return await fetchConReintentos(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: {
@@ -111,11 +177,8 @@ async function supabaseInsert(table, data) {
 // ===================================
 // PRECARGA DE DATOS
 // ===================================
-// ===================================
-// PRECARGA OPTIMIZADA POR MÓDULO
-// ===================================
 async function precargarDatosFormulario() {
-  if (datosCache.tutoresNorte.length > 0) return; // Ya cargados
+  if (datosCache.tutoresNorte.length > 0) return;
   
   try {
     console.log('Precargando datos del formulario...');
@@ -142,7 +205,7 @@ async function precargarDatosFormulario() {
 }
 
 async function precargarDatosRegistro() {
-  if (datosCache.facultadesCarreras.length > 0) return; // Ya cargados
+  if (datosCache.facultadesCarreras.length > 0) return;
   
   try {
     console.log('Precargando datos del registro...');
@@ -160,8 +223,7 @@ async function precargarDatosRegistro() {
 }
 
 async function precargarDatosEstadisticas() {
-  // Para estadísticas necesitamos tutores y profesores
-  if (datosCache.tutoresNorte.length > 0 && datosCache.profesores.length > 0) return; // Ya cargados
+  if (datosCache.tutoresNorte.length > 0 && datosCache.profesores.length > 0) return;
   
   try {
     console.log('Precargando datos de estadísticas...');
@@ -183,8 +245,6 @@ async function precargarDatosEstadisticas() {
   }
 }
 
-
-
 function procesarFacultadesData() {
   facultadesData = {};
   
@@ -196,15 +256,12 @@ function procesarFacultadesData() {
   });
 }
 
-
 function limpiarEspacios(input) {
   const valorOriginal = input.value;
   
-  // Limpiar espacios
   let valor = input.value.trim();
   valor = valor.replace(/\s+/g, ' ');
   
-  // Si cambió algo, hacer un pequeño efecto
   if (valorOriginal !== valor) {
     input.value = valor;
     input.style.backgroundColor = '#e8f4fd';
@@ -214,13 +271,12 @@ function limpiarEspacios(input) {
   }
 }
 
-
-
 // ===================================
 // FUNCIONES DE NAVEGACIÓN
 // ===================================
 function mostrarPantalla(id) {
-  document.querySelectorAll('.container > div').forEach(div => div.classList.add('hidden'));
+  const pantallas = ['pantallaInicio', 'pantallaRegistro', 'pantallaLogin', 'pantallaFormulario', 'pantallaAdminLogin', 'pantallaAdmin'];
+  pantallas.forEach(pantallaId => document.getElementById(pantallaId).classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -229,7 +285,6 @@ async function mostrarLogin() {
   mostrarPantalla('pantallaLogin');
   document.getElementById('mensajeLogin').innerHTML = '';
   
-  // PRECARGAR DATOS DEL FORMULARIO
   if (datosCache.tutoresNorte.length === 0) {
     const mensajeLogin = document.getElementById('mensajeLogin');
     mensajeLogin.innerHTML = '<div class="loader"></div><p style="text-align: center; color: #666; font-size: 13px; margin-top: 10px;">Cargando datos del formulario...</p>';
@@ -244,19 +299,16 @@ async function mostrarLogin() {
   }
 }
 
-
 async function mostrarRegistro() {
   mostrarPantalla('pantallaRegistro');
   document.getElementById('mensajeRegistro').innerHTML = '';
   document.getElementById('confirmacionDatos').classList.add('hidden');
   document.getElementById('btnConfirmarRegistro').classList.add('hidden');
   
-  // Mostrar paso de verificación de documento
   document.getElementById('pasoDocumento').classList.remove('hidden');
   document.getElementById('formRegistro').classList.add('hidden');
   document.getElementById('regDocumento').value = '';
   
-  // CARGAR DATOS DEL REGISTRO
   if (datosCache.facultadesCarreras.length === 0) {
     mostrarCargando('mensajeRegistro');
     try {
@@ -271,10 +323,18 @@ async function mostrarRegistro() {
   }
 }
 
-
 function mostrarLoginAdmin() {
   mostrarPantalla('pantallaAdminLogin');
   document.getElementById('mensajeAdminLogin').innerHTML = '';
+}
+
+// ===================================
+// GESTIÓN DE HORARIOS
+// ===================================
+function ocultarTodosLosHorarios() {
+  ['horarioNorte', 'horarioSur', 'horarioVirtual'].forEach(id => {
+    document.getElementById(id).classList.add('hidden');
+  });
 }
 
 function toggleHorarios() {
@@ -282,23 +342,22 @@ function toggleHorarios() {
   contenedor.classList.toggle('hidden');
   
   if (contenedor.classList.contains('hidden')) {
-    document.getElementById('horarioNorte').classList.add('hidden');
-    document.getElementById('horarioSur').classList.add('hidden');
-    document.getElementById('horarioVirtual').classList.add('hidden');
+    ocultarTodosLosHorarios();
   }
 }
 
 function toggleHorario(sede) {
-  document.getElementById('horarioNorte').classList.add('hidden');
-  document.getElementById('horarioSur').classList.add('hidden');
-  document.getElementById('horarioVirtual').classList.add('hidden');
+  ocultarTodosLosHorarios();
   
-  if (sede === 'norte') {
-    document.getElementById('horarioNorte').classList.toggle('hidden');
-  } else if (sede === 'sur') {
-    document.getElementById('horarioSur').classList.toggle('hidden');
-  } else if (sede === 'virtual') {
-    document.getElementById('horarioVirtual').classList.toggle('hidden');
+  const horarioMap = {
+    'norte': 'horarioNorte',
+    'sur': 'horarioSur',
+    'virtual': 'horarioVirtual'
+  };
+  
+  const horarioId = horarioMap[sede];
+  if (horarioId) {
+    document.getElementById(horarioId).classList.toggle('hidden');
   }
 }
 
@@ -306,31 +365,22 @@ function volverInicio() {
   mostrarPantalla('pantallaInicio');
   limpiarFormularios();
   formularioEnviandose = false;
-  document.getElementById('btnContinuar').classList.remove('hidden');
-  document.getElementById('btnConfirmarRegistro').classList.add('hidden');
-  document.getElementById('confirmacionDatos').classList.add('hidden');
-  document.getElementById('contenedorHorarios').classList.add('hidden');
-  document.getElementById('horarioNorte').classList.add('hidden');
-  document.getElementById('horarioSur').classList.add('hidden');
-  document.getElementById('horarioVirtual').classList.add('hidden');
+  
+  ['btnContinuar', 'confirmacionDatos', 'contenedorHorarios'].forEach(id => {
+    document.getElementById(id).classList.remove('hidden');
+  });
+  
+  ['btnConfirmarRegistro'].forEach(id => {
+    document.getElementById(id).classList.add('hidden');
+  });
+  
+  ocultarTodosLosHorarios();
 
-
-// REACTIVAR BOTONES
   const btnEnviar = document.getElementById('btnEnviar');
-  if (btnEnviar) {
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    btnEnviar.style.opacity = '1';
-    btnEnviar.style.cursor = 'pointer';
-  }
+  if (btnEnviar) reactivarBoton(btnEnviar, 'Enviar Formulario');
   
   const btnRegistro = document.getElementById('btnConfirmarRegistro');
-  if (btnRegistro) {
-    btnRegistro.disabled = false;
-    btnRegistro.textContent = 'Confirmar y Registrarme';
-    btnRegistro.style.opacity = '1';
-    btnRegistro.style.cursor = 'pointer';
-  }
+  if (btnRegistro) reactivarBoton(btnRegistro, 'Confirmar y Registrarme');
 }
 
 function limpiarFormularios() {
@@ -361,7 +411,24 @@ function mostrarCargando(elementId) {
 }
 
 // ===================================
-// VALIDACIÓN DE DOCUMENTO
+// GESTIÓN DE ESTADO DE BOTONES
+// ===================================
+function desactivarBoton(boton, textoEspera) {
+  boton.disabled = true;
+  boton.textContent = textoEspera;
+  boton.style.opacity = '0.6';
+  boton.style.cursor = 'not-allowed';
+}
+
+function reactivarBoton(boton, textoOriginal) {
+  boton.disabled = false;
+  boton.textContent = textoOriginal;
+  boton.style.opacity = '1';
+  boton.style.cursor = 'pointer';
+}
+
+// ===================================
+// VALIDACIÓN Y REGISTRO
 // ===================================
 function validarDocumento(documento) {
   const longitud = documento.length;
@@ -376,9 +443,6 @@ function validarDocumento(documento) {
   return { valido: true };
 }
 
-// ===================================
-// CARGAR FACULTADES Y PROGRAMAS
-// ===================================
 function cargarFacultades() {
   const select = document.getElementById('regFacultad');
   select.innerHTML = '<option value="">Seleccione una facultad</option>';
@@ -417,9 +481,7 @@ function cargarProgramas() {
   });
 }
 
-// ===================================
-// CONFIRMACIÓN Y REGISTRO
-// ===================================
+
 function mostrarConfirmacion() {
   const doc = document.getElementById('regDocumento').value;
   
@@ -477,7 +539,6 @@ function mostrarConfirmacion() {
   }, 100);
 }
 
-// NUEVA FUNCIÓN: Verificar documento antes de mostrar el formulario
 async function verificarDocumento(event) {
   event.preventDefault();
   
@@ -501,13 +562,11 @@ async function verificarDocumento(event) {
       return;
     }
 
-    // Si el documento NO está registrado, mostrar el formulario completo
     document.getElementById('mensajeRegistro').innerHTML = '';
     document.getElementById('pasoDocumento').classList.add('hidden');
     document.getElementById('formRegistro').classList.remove('hidden');
     document.getElementById('regDocumentoMostrar').value = doc;
     
-    // Hacer scroll al inicio del formulario
     setTimeout(() => {
       document.getElementById('formRegistro').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
@@ -517,19 +576,13 @@ async function verificarDocumento(event) {
   }
 }
 
-// FUNCIÓN MODIFICADA: Registrar estudiante (sin verificación de documento duplicado)
 async function registrarEstudiante(event) {
   event.preventDefault();
   
   const doc = document.getElementById('regDocumentoMostrar').value;
   const btnRegistro = document.getElementById('btnConfirmarRegistro');
   
-  // Desactivar botón para evitar doble click
-  btnRegistro.disabled = true;
-  btnRegistro.textContent = '⏳ Registrando...';
-  btnRegistro.style.opacity = '0.6';
-  btnRegistro.style.cursor = 'not-allowed';
-  
+  desactivarBoton(btnRegistro, '⏳ Registrando...');
   mostrarCargando('mensajeRegistro');
 
   const datos = {
@@ -560,24 +613,16 @@ async function registrarEstudiante(event) {
       }, 3000);
     } else {
       mostrarMensaje('mensajeRegistro', 'Error: No se pudo completar el registro', 'error');
-      // Reactivar botón si falla
-      btnRegistro.disabled = false;
-      btnRegistro.textContent = 'Confirmar y Registrarme';
-      btnRegistro.style.opacity = '1';
-      btnRegistro.style.cursor = 'pointer';
+      reactivarBoton(btnRegistro, 'Confirmar y Registrarme');
     }
   } catch (error) {
     mostrarMensaje('mensajeRegistro', error.message, 'error');
-    // Reactivar botón si hay error
-    btnRegistro.disabled = false;
-    btnRegistro.textContent = 'Confirmar y Registrarme';
-    btnRegistro.style.opacity = '1';
-    btnRegistro.style.cursor = 'pointer';
+    reactivarBoton(btnRegistro, 'Confirmar y Registrarme');
   }
 }
 
 // ===================================
-// LOGIN
+// LOGIN Y SESIÓN
 // ===================================
 function censurarNombre(nombreCompleto) {
   const partes = nombreCompleto.split(' ');
@@ -600,7 +645,6 @@ async function iniciarSesion(event) {
   
   mostrarCargando('mensajeLogin');
 
-  // Asegurar que datos del formulario estén cargados
   if (datosCache.tutoresNorte.length === 0) {
     try {
       await precargarDatosFormulario();
@@ -647,47 +691,36 @@ async function iniciarSesion(event) {
   }
 }
 
-
 // ===================================
-// VERIFICAR REGISTRO RECIENTE CON INSTRUCTOR ESPECÍFICO
+// VERIFICACIÓN DE REGISTROS
 // ===================================
 async function verificarRegistroRecenteConInstructor(documento, instructorSeleccionado) {
   try {
-    // Obtener la fecha y hora actual en Colombia (UTC-5)
     const ahora = new Date();
     const ahoraColombia = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
-    
-    // Calcular hace 1 hora y 30 minutos (90 minutos)
     const hace90Minutos = new Date(ahoraColombia.getTime() - (90 * 60 * 1000));
     const hace90MinutosISO = hace90Minutos.toISOString();
     
-    // Consultar registros de los últimos 90 minutos CON EL MISMO INSTRUCTOR
     const url = `${SUPABASE_URL}/rest/v1/formularios?documento=eq.${documento}&instructor=eq.${encodeURIComponent(instructorSeleccionado)}&fecha=gte.${hace90MinutosISO}&order=fecha.desc`;
     
-    const response = await fetch(url, {
+    const registrosRecientes = await fetchConReintentos(url, {
       headers: {
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${SUPABASE_KEY}`
       }
     });
     
-    const registrosRecientes = await response.json();
-    
     if (registrosRecientes.length === 0) {
-      // No hay registros recientes con este instructor, puede registrar
       return { puedeRegistrar: true };
     }
     
-    // Obtener el registro más reciente con este instructor
     const registroMasReciente = registrosRecientes[0];
     const fechaRegistro = new Date(registroMasReciente.fecha);
     const fechaRegistroColombia = new Date(fechaRegistro.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
     
-    // Calcular tiempo transcurrido en minutos
     const tiempoTranscurrido = Math.floor((ahoraColombia - fechaRegistroColombia) / (1000 * 60));
     const tiempoRestanteMinutos = 90 - tiempoTranscurrido;
     
-    // Formatear tiempo restante
     let tiempoRestante;
     if (tiempoRestanteMinutos >= 60) {
       const horas = Math.floor(tiempoRestanteMinutos / 60);
@@ -705,14 +738,12 @@ async function verificarRegistroRecenteConInstructor(documento, instructorSelecc
     
   } catch (error) {
     console.error('Error verificando registro reciente:', error);
-    // En caso de error, permitir el registro
     return { puedeRegistrar: true };
   }
 }
 
-
 // ===================================
-// CARGAR INSTRUCTORES - MODIFICADO
+// GESTIÓN DE INSTRUCTORES Y MATERIAS
 // ===================================
 function cargarInstructores() {
   const sede = document.getElementById('sedeTutoria').value;
@@ -720,7 +751,6 @@ function cargarInstructores() {
 
   if (!sede || !tipo) return;
 
-  // Ocultar campos al cambiar sede o tipo
   const grupoFacultad = document.getElementById('grupoFacultadDepartamento');
   const selectFacultad = document.getElementById('facultadDepartamento');
   
@@ -729,18 +759,15 @@ function cargarInstructores() {
   selectFacultad.value = '';
   document.getElementById('instructor').value = '';
   
-  // IMPORTANTE: Remover required del campo de facultad cuando está oculto
   selectFacultad.removeAttribute('required');
 
   if (tipo === 'Tutor') {
-    // Si es tutor, mostrar directamente los tutores según la sede
     const selectInstructor = document.getElementById('instructor');
     document.getElementById('grupoInstructor').classList.remove('hidden');
     document.getElementById('labelInstructor').textContent = 'Tutor *';
 
     let instructores = [];
     
-    // Si es Virtual, mostrar TODOS los tutores (Norte + Sur)
     if (sede === 'Virtual') {
       instructores = [...datosCache.tutoresNorte, ...datosCache.tutoresSur];
     } else if (sede === 'Norte') {
@@ -751,9 +778,8 @@ function cargarInstructores() {
 
     const instructoresOrdenados = [...instructores].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-selectInstructor.innerHTML = '<option value="">Seleccione un tutor</option>';
+    selectInstructor.innerHTML = '<option value="">Seleccione un tutor</option>';
     
-    // Eliminar duplicados (mismo nombre, diferentes áreas)
     const instructoresUnicos = [];
     const nombresVistos = new Set();
     
@@ -773,18 +799,12 @@ selectInstructor.innerHTML = '<option value="">Seleccione un tutor</option>';
     
     actualizarProgreso(2);
   } else if (tipo === 'Profesor') {
-    // Si es profesor, mostrar el selector de Facultad/Departamento
-    // INDEPENDIENTE de la sede
     grupoFacultad.classList.remove('hidden');
-    // IMPORTANTE: Agregar required cuando se muestra
     selectFacultad.setAttribute('required', 'required');
     actualizarProgreso(2);
   }
 }
 
-// ===================================
-// CARGAR PROFESORES POR FACULTAD/DEPARTAMENTO
-// ===================================
 function cargarProfesoresPorFacultad() {
   const facultadDepartamento = document.getElementById('facultadDepartamento').value;
 
@@ -794,7 +814,6 @@ function cargarProfesoresPorFacultad() {
   document.getElementById('grupoInstructor').classList.remove('hidden');
   document.getElementById('labelInstructor').textContent = 'Profesor *';
 
-  // Filtrar por facultad_departamento sin considerar la sede
   const profesores = datosCache.profesores.filter(
     prof => prof.facultad_departamento === facultadDepartamento
   );
@@ -811,9 +830,6 @@ function cargarProfesoresPorFacultad() {
   });
 }
 
-// ===================================
-// CARGAR MATERIAS
-// ===================================
 function cargarMaterias() {
   const selectInstructor = document.getElementById('instructor');
   const selectedOption = selectInstructor.options[selectInstructor.selectedIndex];
@@ -822,7 +838,6 @@ function cargarMaterias() {
 
   const instructorNombre = selectedOption.value;
   
-  // Obtener TODAS las áreas del instructor (puede tener múltiples)
   let areasInstructor = [];
   
   if (document.getElementById('tipoInstructor').value === 'Tutor') {
@@ -837,14 +852,12 @@ function cargarMaterias() {
       tutores = datosCache.tutoresSur;
     }
     
-    // Buscar todas las áreas de este tutor
     tutores.forEach(tutor => {
       if (tutor.nombre === instructorNombre && !areasInstructor.includes(tutor.area)) {
         areasInstructor.push(tutor.area);
       }
     });
   } else {
-    // Para profesores
     datosCache.profesores.forEach(prof => {
       if (prof.nombre === instructorNombre && !areasInstructor.includes(prof.area)) {
         areasInstructor.push(prof.area);
@@ -856,7 +869,6 @@ function cargarMaterias() {
 
   document.getElementById('grupoMateria').classList.remove('hidden');
 
-  // Filtrar materias de TODAS las áreas del instructor
   const materiasFiltradas = datosCache.materias.filter(mat => 
     areasInstructor.includes(mat.area)
   );
@@ -873,7 +885,6 @@ function cargarMaterias() {
     selectMateria.appendChild(option);
   });
   
-  // Agregar opción "Otra"
   const optionOtra = document.createElement('option');
   optionOtra.value = 'Otra';
   optionOtra.textContent = 'Otra: ¿Cuál?';
@@ -883,41 +894,28 @@ function cargarMaterias() {
   actualizarProgreso(3);
 }
 
-
-// ===================================
-// CARGAR TEMAS
-// ===================================
-// ===================================
-// CARGAR TEMAS
-// ===================================
 function cargarTemas() {
   const materia = document.getElementById('asignatura').value;
   if (!materia) return;
 
-  // Verificar si seleccionó "Otra"
   const containerAsignatura = document.getElementById('otraAsignaturaContainer');
   const inputAsignatura = document.getElementById('otraAsignatura');
   
   if (materia === 'Otra') {
-    // Mostrar campo para especificar la asignatura
     containerAsignatura.classList.remove('hidden');
     inputAsignatura.required = true;
     
-    // Mostrar grupo de tema
     document.getElementById('grupoTema').classList.remove('hidden');
     
-    // Ocultar el select de tema y mostrar el input de texto
     const selectTema = document.getElementById('tema');
     selectTema.style.display = 'none';
     selectTema.required = false;
     
-    // Mostrar campo de texto para tema personalizado
     const containerTema = document.getElementById('otroTemaContainer');
     const inputTema = document.getElementById('otroTema');
     containerTema.classList.remove('hidden');
     inputTema.required = true;
     
-    // Cambiar el label de tema
     const labelTema = document.querySelector('#grupoTema label');
     labelTema.textContent = 'Tema *';
     
@@ -931,7 +929,6 @@ function cargarTemas() {
     actualizarProgreso(4);
     return;
   } else {
-    // Si NO es "Otra", ocultar el campo de asignatura personalizada
     containerAsignatura.classList.add('hidden');
     inputAsignatura.required = false;
     inputAsignatura.value = '';
@@ -939,7 +936,6 @@ function cargarTemas() {
 
   document.getElementById('grupoTema').classList.remove('hidden');
 
-  // Filtrar temas de la materia seleccionada
   const temasFiltrados = datosCache.temas.filter(tem => tem.materia === materia);
   
   const selectTema = document.getElementById('tema');
@@ -947,21 +943,16 @@ function cargarTemas() {
   const inputTema = document.getElementById('otroTema');
   const labelTema = document.querySelector('#grupoTema label');
 
-  // Si NO hay temas en la base de datos, mostrar solo campo de texto
   if (temasFiltrados.length === 0) {
-    // Ocultar el select
     selectTema.style.display = 'none';
     selectTema.required = false;
     
-    // Mostrar campo de texto
     containerTema.classList.remove('hidden');
     inputTema.required = true;
     inputTema.value = '';
     
-    // Cambiar el label
     labelTema.textContent = 'Tema *';
   } else {
-    // Si HAY temas, mostrar el select normalmente
     const temasOrdenados = temasFiltrados.sort((a, b) => a.tema.localeCompare(b.tema));
     
     selectTema.style.display = '';
@@ -981,12 +972,10 @@ function cargarTemas() {
     optionOtro.style.fontWeight = 'bold';
     selectTema.appendChild(optionOtro);
     
-    // Ocultar campo de texto
     containerTema.classList.add('hidden');
     inputTema.required = false;
     inputTema.value = '';
     
-    // Restaurar label original
     labelTema.textContent = 'Tema de la tutoría *';
   }
 
@@ -1000,19 +989,31 @@ function cargarTemas() {
   actualizarProgreso(4);
 }
 
-function toggleOtroTema() {
-  const tema = document.getElementById('tema').value;
-  const container = document.getElementById('otroTemaContainer');
-  const input = document.getElementById('otroTema');
+// ===================================
+// FUNCIONES DE TOGGLE GENÉRICAS
+// ===================================
+function toggleCondicional(condicion, containerId, inputId, limpiarValor = true) {
+  const container = document.getElementById(containerId);
+  const input = document.getElementById(inputId);
   
-  if (tema === 'Otro') {
+  if (condicion) {
     container.classList.remove('hidden');
     input.required = true;
   } else {
     container.classList.add('hidden');
     input.required = false;
-    input.value = '';
+    if (limpiarValor) input.value = '';
   }
+}
+
+function toggleOtroTema() {
+  const tema = document.getElementById('tema').value;
+  toggleCondicional(tema === 'Otro', 'otroTemaContainer', 'otroTema');
+}
+
+function toggleTituloCurso() {
+  const tipo = document.getElementById('tipoAcompanamiento').value;
+  toggleCondicional(tipo === 'Curso y/o capacitación', 'grupoTituloCurso', 'tituloCurso');
 }
 
 function toggleSugerencias() {
@@ -1028,37 +1029,8 @@ function toggleSugerencias() {
   }
 }
 
-// Agregar listener para calificación
-document.addEventListener('DOMContentLoaded', function() {
-  const calificaciones = document.querySelectorAll('input[name="calificacion"]');
-  calificaciones.forEach(radio => {
-    radio.addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById('step4').classList.add('completed');
-        document.getElementById('step4').classList.remove('active');
-      }
-    });
-  });
-});
-
-
-function toggleTituloCurso() {
-  const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
-  const grupoTituloCurso = document.getElementById('grupoTituloCurso');
-  const inputTituloCurso = document.getElementById('tituloCurso');
-  
-  if (tipoAcompanamiento === 'Curso y/o capacitación') {
-    grupoTituloCurso.classList.remove('hidden');
-    inputTituloCurso.required = true;
-  } else {
-    grupoTituloCurso.classList.add('hidden');
-    inputTituloCurso.required = false;
-    inputTituloCurso.value = '';
-  }
-}
-
 // ===================================
-// BOTÓN CANCELAR Y CONFIRMACIÓN
+// FORMULARIO DE TUTORÍA
 // ===================================
 function actualizarBotonCerrarSesion() {
   const btnCerrar = document.getElementById('btnCancelarFormulario');
@@ -1098,15 +1070,11 @@ function mostrarModalConfirmacion(titulo, mensaje, callbackConfirmar) {
   };
 }
 
-// ===================================
-// GUARDAR FORMULARIO
-// ===================================
 async function guardarFormulario(event) {
   event.preventDefault();
   
   const btnEnviar = document.getElementById('btnEnviar');
   
-  // Validar la calificación
   const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
   
   if (!calificacionRadio) {
@@ -1145,15 +1113,9 @@ async function guardarFormulario(event) {
     return;
   }
   
-  // Desactivar botón para evitar doble envío
-  btnEnviar.disabled = true;
-  btnEnviar.textContent = '⏳ Enviando...';
-  btnEnviar.style.opacity = '0.6';
-  btnEnviar.style.cursor = 'not-allowed';
-  
+  desactivarBoton(btnEnviar, '⏳ Enviando...');
   mostrarCargando('mensajeFormulario');
   
-  // NUEVO: Verificar si el instructor seleccionado ya fue usado en los últimos 90 minutos
   const instructorSeleccionado = document.getElementById('instructor').value;
   
   const verificacion = await verificarRegistroRecenteConInstructor(datosEstudiante.documento, instructorSeleccionado);
@@ -1163,11 +1125,7 @@ async function guardarFormulario(event) {
       `Ya tienes una tutoría reciente con este tutor. Podrás registrar otra en ${verificacion.tiempoRestante}, o puedes realizarla con otro tutor si lo prefieres.`, 
       'error');
     
-    // Reactivar botón
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    btnEnviar.style.opacity = '1';
-    btnEnviar.style.cursor = 'pointer';
+    reactivarBoton(btnEnviar, 'Enviar Formulario');
     
     setTimeout(() => {
       const mensajeElement = document.getElementById('mensajeFormulario');
@@ -1180,65 +1138,47 @@ async function guardarFormulario(event) {
     return;
   }
 
-  // Obtener asignatura (puede ser personalizada)
   let asignatura = document.getElementById('asignatura').value;
   if (asignatura === 'Otra') {
     asignatura = document.getElementById('otraAsignatura').value.trim().toUpperCase();
     if (!asignatura) {
       mostrarMensaje('mensajeFormulario', 'Por favor especifique la asignatura', 'error');
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      btnEnviar.style.opacity = '1';
-      btnEnviar.style.cursor = 'pointer';
+      reactivarBoton(btnEnviar, 'Enviar Formulario');
       return;
     }
   }
 
-  // Obtener tema (puede ser personalizado)
-const selectTema = document.getElementById('tema');
-const inputTema = document.getElementById('otroTema');
-let tema = '';
+  const selectTema = document.getElementById('tema');
+  const inputTema = document.getElementById('otroTema');
+  let tema = '';
 
-// Caso 1: Select visible y con valor "Otro"
-if (selectTema.value === 'Otro') {
-  tema = inputTema.value.trim().toUpperCase();
-  if (!tema) {
-    mostrarMensaje('mensajeFormulario', 'Por favor especifique el tema', 'error');
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    btnEnviar.style.opacity = '1';
-    btnEnviar.style.cursor = 'pointer';
-    return;
+  if (selectTema.value === 'Otro') {
+    tema = inputTema.value.trim().toUpperCase();
+    if (!tema) {
+      mostrarMensaje('mensajeFormulario', 'Por favor especifique el tema', 'error');
+      reactivarBoton(btnEnviar, 'Enviar Formulario');
+      return;
+    }
+  } else if (selectTema.style.display === 'none') {
+    tema = inputTema.value.trim().toUpperCase();
+    if (!tema) {
+      mostrarMensaje('mensajeFormulario', 'Por favor ingrese el tema de la tutoría', 'error');
+      reactivarBoton(btnEnviar, 'Enviar Formulario');
+      return;
+    }
+  } else {
+    tema = selectTema.value;
   }
-}
-// Caso 2: Select oculto (no hay temas en BD o asignatura es "Otra")
-else if (selectTema.style.display === 'none') {
-  tema = inputTema.value.trim().toUpperCase();
-  if (!tema) {
-    mostrarMensaje('mensajeFormulario', 'Por favor ingrese el tema de la tutoría', 'error');
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    btnEnviar.style.opacity = '1';
-    btnEnviar.style.cursor = 'pointer';
-    return;
-  }
-}
-// Caso 3: Select visible con tema normal seleccionado
-else {
-  tema = selectTema.value;
-}
 
   const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
   const tituloCurso = tipoAcompanamiento === 'Curso y/o capacitación' 
     ? document.getElementById('tituloCurso').value.toUpperCase() 
     : null;
   
-  // Obtener fecha y hora actual en Colombia (UTC-5)
   const ahora = new Date();
   const fechaColombia = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
   const fechaISO = fechaColombia.toISOString();
   
-  // Obtener el valor de facultad_departamento (puede estar vacío si es tutor)
   const facultadDepartamentoValue = document.getElementById('facultadDepartamento').value || null;
   
   const datos = {
@@ -1275,6 +1215,9 @@ else {
     
     document.getElementById('formTutoria').reset();
     document.getElementById('grupoTituloCurso').classList.add('hidden');
+
+
+
     document.getElementById('grupoFacultadDepartamento').classList.add('hidden');
     document.getElementById('grupoInstructor').classList.add('hidden');
     document.getElementById('grupoMateria').classList.add('hidden');
@@ -1292,11 +1235,7 @@ else {
     }, 3000);
   } catch (error) {
     mostrarMensaje('mensajeFormulario', error.message, 'error');
-    // Reactivar botón si hay error
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    btnEnviar.style.opacity = '1';
-    btnEnviar.style.cursor = 'pointer';
+    reactivarBoton(btnEnviar, 'Enviar Formulario');
   }
 }
 
@@ -1305,14 +1244,11 @@ function cerrarSesion() {
   instructorActual = null;
   formularioEnviandose = false;
   
-  // REACTIVAR BOTÓN DE ENVIAR
   const btnEnviar = document.getElementById('btnEnviar');
-  if (btnEnviar) {
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    btnEnviar.style.opacity = '1';
-    btnEnviar.style.cursor = 'pointer';
-  }
+  if (btnEnviar) reactivarBoton(btnEnviar, 'Enviar Formulario');
+  
+  const btnRegistro = document.getElementById('btnConfirmarRegistro');
+  if (btnRegistro) reactivarBoton(btnRegistro, 'Confirmar y Registrarme');
   
   document.querySelectorAll('.progress-step').forEach(step => {
     step.classList.remove('active', 'completed');
@@ -1341,7 +1277,6 @@ async function loginAdmin(event) {
       eq: { field: 'documento', value: documento }
     });
 
-    // Verificar que el documento existe Y que la contraseña coincida
     if (data.length === 0 || data[0].contra !== contrasena) {
       mostrarMensaje('mensajeAdminLogin', 'Acceso denegado.', 'error');
       return;
@@ -1349,7 +1284,6 @@ async function loginAdmin(event) {
 
     document.getElementById('nombreAdmin').textContent = 'Administrador: ' + data[0].nombre;
     mostrarPantalla('pantallaAdmin');
-    // Ya NO cargamos estadísticas aquí, se cargan cuando el admin hace clic
   } catch (error) {
     mostrarMensaje('mensajeAdminLogin', 'Error de conexión: ' + error.message, 'error');
   }
@@ -1359,75 +1293,76 @@ async function cambiarTab(event, tab) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
   
-  document.getElementById('tabEstadisticas').classList.add('hidden');
-  document.getElementById('tabGraficas').classList.add('hidden');
-  document.getElementById('tabDescargas').classList.add('hidden');
+  ['tabEstadisticas', 'tabGraficas', 'tabDescargas'].forEach(id => {
+    document.getElementById(id).classList.add('hidden');
+  });
   
-  if (tab === 'estadisticas') {
-    document.getElementById('tabEstadisticas').classList.remove('hidden');
-    
-    // CARGAR DATOS DE ESTADÍSTICAS
-    if (datosCache.tutoresNorte.length === 0) {
-      document.getElementById('statsGrid').innerHTML = '<div class="loader"></div><p style="text-align: center; color: #666; margin-top: 15px;">Cargando datos...</p>';
-      try {
-        await precargarDatosEstadisticas();
-      } catch (error) {
-        document.getElementById('statsGrid').innerHTML = '<p style="text-align: center; color: #dc3545;">Error al cargar datos. Por favor intenta de nuevo.</p>';
-        return;
-      }
-    }
-    
-    // Cargar estadísticas si no existen
-    if (!window.datosFormulariosGlobal) {
-      await cargarEstadisticas();
-    }
-    
-  } else if (tab === 'graficas') {
-    document.getElementById('tabGraficas').classList.remove('hidden');
-    
-    // CARGAR DATOS PARA GRÁFICAS (solo necesita formularios)
-    if (!window.datosFormulariosGlobal) {
-      const container = document.querySelector('#tabGraficas .chart-container');
-      const contenidoOriginal = container.innerHTML;
-      container.innerHTML = '<div class="loader"></div><p style="text-align: center; color: #666; margin-top: 15px;">Cargando datos para gráficas...</p>';
-      
-      try {
-        const data = await supabaseQuery('formularios');
-        window.datosFormulariosGlobal = data;
-        container.innerHTML = contenidoOriginal;
-      } catch (error) {
-        container.innerHTML = '<p style="text-align: center; color: #dc3545;">Error al cargar datos. Por favor intenta de nuevo.</p>';
-        return;
-      }
-    }
-    
-    // Crear/actualizar gráfica
-    if (!graficoTutorias) {
-      actualizarGrafica();
-    }
-    
-  } else if (tab === 'descargas') {
-    document.getElementById('tabDescargas').classList.remove('hidden');
+  const tabMap = {
+    'estadisticas': 'tabEstadisticas',
+    'graficas': 'tabGraficas',
+    'descargas': 'tabDescargas'
+  };
+  
+  document.getElementById(tabMap[tab]).classList.remove('hidden');
+  
+  switch(tab) {
+    case 'estadisticas':
+      await cargarDatosEstadisticas();
+      break;
+    case 'graficas':
+      await cargarDatosGraficas();
+      break;
   }
 }
 
-// ===================================
-// ACTUALIZAR ESTADÍSTICAS
-// ===================================
+async function cargarDatosEstadisticas() {
+  if (datosCache.tutoresNorte.length === 0) {
+    document.getElementById('statsGrid').innerHTML = '<div class="loader"></div><p style="text-align: center; color: #666; margin-top: 15px;">Cargando datos...</p>';
+    try {
+      await precargarDatosEstadisticas();
+    } catch (error) {
+      document.getElementById('statsGrid').innerHTML = '<p style="text-align: center; color: #dc3545;">Error al cargar datos. Por favor intenta de nuevo.</p>';
+      return;
+    }
+  }
+  
+  if (!window.datosFormulariosGlobal) {
+    await cargarEstadisticas();
+  }
+}
+
+async function cargarDatosGraficas() {
+  if (!window.datosFormulariosGlobal) {
+    const container = document.querySelector('#tabGraficas .chart-container');
+    const contenidoOriginal = container.innerHTML;
+    container.innerHTML = '<div class="loader"></div><p style="text-align: center; color: #666; margin-top: 15px;">Cargando datos para gráficas...</p>';
+    
+    try {
+      const data = await supabaseQuery('formularios');
+      window.datosFormulariosGlobal = data;
+      container.innerHTML = contenidoOriginal;
+    } catch (error) {
+      container.innerHTML = '<p style="text-align: center; color: #dc3545;">Error al cargar datos. Por favor intenta de nuevo.</p>';
+      return;
+    }
+  }
+  
+  if (!graficoTutorias) {
+    actualizarGrafica();
+  }
+}
+
 async function actualizarEstadisticas() {
   const btnActualizar = document.querySelector('.btn-actualizar');
   
-  // Deshabilitar botón mientras carga
   btnActualizar.disabled = true;
   btnActualizar.style.opacity = '0.6';
   
   try {
     await cargarEstadisticas();
     
-    // Cambiar a check
     btnActualizar.textContent = '✓';
     
-    // Volver al icono original después de 1.5 segundos
     setTimeout(() => {
       btnActualizar.textContent = '🔄';
     }, 1500);
@@ -1435,7 +1370,6 @@ async function actualizarEstadisticas() {
   } catch (error) {
     console.error('Error actualizando estadísticas:', error);
     
-    // Mostrar X en caso de error
     btnActualizar.textContent = '✗';
     
     setTimeout(() => {
@@ -1447,9 +1381,10 @@ async function actualizarEstadisticas() {
   }
 }
 
-
+// ===================================
+// ESTADÍSTICAS
+// ===================================
 async function cargarEstadisticas() {
-  // Mostrar loader mientras carga
   document.getElementById('statsGrid').innerHTML = '<div class="loader"></div><p style="text-align: center; color: #666; margin-top: 15px;">Cargando estadísticas...</p>';
   document.getElementById('detallesStats').innerHTML = '';
   
@@ -1461,7 +1396,6 @@ async function cargarEstadisticas() {
       return;
     }
 
-    // Crear HTML con estructura correcta
     const contenidoHTML = `
       <div class="estadisticas-menu-wrapper">
         <button class="btn btn-sede activo" onclick="mostrarEstadisticas('general', this)">
@@ -1480,10 +1414,8 @@ async function cargarEstadisticas() {
     document.getElementById('statsGrid').innerHTML = contenidoHTML;
     document.getElementById('detallesStats').innerHTML = '';
 
-    // Guardar datos globalmente para uso posterior
     window.datosFormulariosGlobal = data;
 
-    // Mostrar estadísticas generales por defecto
     mostrarEstadisticas('general');
 
   } catch (error) {
@@ -1506,18 +1438,14 @@ async function cargarEstadisticas() {
   );
 }
 
-
 function mostrarEstadisticas(tipo, botonClickeado) {
-  // Remover clase activo de todos los botones
   document.querySelectorAll('.estadisticas-menu-wrapper .btn-sede').forEach(btn => {
     btn.classList.remove('activo');
   });
   
-  // Agregar clase activo al botón clickeado (si existe)
   if (botonClickeado) {
     botonClickeado.classList.add('activo');
   } else {
-    // Si se llama sin botón (carga inicial), activar el botón de General
     const btnGeneral = document.querySelector('.estadisticas-menu-wrapper .btn-sede');
     if (btnGeneral) btnGeneral.classList.add('activo');
   }
@@ -1531,7 +1459,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
   } else if (tipo === 'profesores') {
     datosFiltrados = data.filter(item => item.tipo_instructor === 'Profesor');
   } else {
-    // General: todos los datos
     datosFiltrados = data;
   }
 
@@ -1569,7 +1496,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
 
     stats.sumaCalificaciones += item.calificacion;
 
-    // Para profesores: contar por facultad/departamento
     if (tipo === 'profesores' && item.facultad_departamento) {
       stats.facultadDepartamento[item.facultad_departamento] = (stats.facultadDepartamento[item.facultad_departamento] || 0) + 1;
     }
@@ -1583,7 +1509,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     promediosPorInstructor[instructor] = (info.suma / info.cantidad).toFixed(2);
   });
 
-  // Encontrar el mejor instructor con mejor promedio
   let mejorInstructor = { nombre: '', promedio: 0, cantidad: 0 };
   
   Object.keys(stats.calificacionesPorInstructor).forEach(instructor => {
@@ -1602,7 +1527,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
 
   const grid = document.getElementById('contenidoEstadisticas');
   
-  // GENERAL: Solo 3 cards
   if (tipo === 'general') {
     grid.innerHTML = `
       <div class="stats-grid">
@@ -1624,7 +1548,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     return;
   }
 
-  // TUTORES y PROFESORES: Cards completos
   const tituloTipo = tipo === 'tutores' ? 'Tutorías' : 'Asesorías con Profesores';
 
   grid.innerHTML = `
@@ -1646,8 +1569,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
 
   let detalles = '';
 
-
-// TUTORES: Mostrar por sede
   if (tipo === 'tutores') {
     detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Tutorías por Sede</h3>';
     Object.entries(stats.sedesTutorias).forEach(([sede, cantidad]) => {
@@ -1656,27 +1577,21 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     });
     detalles += '</div>';
 
-    // Contar tutorías totales por instructor (sin importar dónde las dio)
     const tutoriasPorInstructor = {};
     datosFiltrados.forEach(item => {
       const instructor = item.instructor;
       tutoriasPorInstructor[instructor] = (tutoriasPorInstructor[instructor] || 0) + 1;
     });
 
-    // Agrupar tutores por SEDE DE ORIGEN (tabla donde están registrados)
-    // Si un tutor está en ambas tablas, aparece en ambas sedes con el mismo total
     const tutoresPorSedeOrigen = { Norte: {}, Sur: {} };
     
-    // Verificar si los datos están cargados
     if (datosCache.tutoresNorte.length > 0 && datosCache.tutoresSur.length > 0) {
       Object.keys(tutoriasPorInstructor).forEach(instructor => {
         const cantidadTotal = tutoriasPorInstructor[instructor];
         
-        // Verificar en qué tabla de ORIGEN está el tutor
         const esTutorNorte = datosCache.tutoresNorte.some(t => t.nombre === instructor);
         const esTutorSur = datosCache.tutoresSur.some(t => t.nombre === instructor);
         
-        // Agregar a las sedes de origen con el TOTAL de tutorías
         if (esTutorNorte) {
           tutoresPorSedeOrigen.Norte[instructor] = cantidadTotal;
         }
@@ -1702,7 +1617,7 @@ function mostrarEstadisticas(tipo, botonClickeado) {
         <h4 class="horario-titulo">Tutores de Sede Norte</h4>`;
     
     const instructoresNorte = Object.entries(tutoresPorSedeOrigen.Norte)
-      .sort((a, b) => b[1] - a[1]); // Ordenar de mayor a menor cantidad
+      .sort((a, b) => b[1] - a[1]);
     
     if (instructoresNorte.length > 0) {
       instructoresNorte.forEach(([instructor, cantidad]) => {
@@ -1722,7 +1637,7 @@ function mostrarEstadisticas(tipo, botonClickeado) {
         <h4 class="horario-titulo">Tutores de Sede Sur</h4>`;
     
     const instructoresSur = Object.entries(tutoresPorSedeOrigen.Sur)
-      .sort((a, b) => b[1] - a[1]); // Ordenar de mayor a menor cantidad
+      .sort((a, b) => b[1] - a[1]);
     
     if (instructoresSur.length > 0) {
       instructoresSur.forEach(([instructor, cantidad]) => {
@@ -1739,122 +1654,105 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     detalles += '</div></div>';
   }
 
-  
-  
-  // PROFESORES: Mostrar por facultad/departamento con profesores agrupados
-if (tipo === 'profesores') {
-  detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Asesorías por Facultad/Departamento</h3>';
-  
-  const facultadesOrdenadas = Object.entries(stats.facultadDepartamento)
-    .sort((a, b) => b[1] - a[1]);
-  
-  if (facultadesOrdenadas.length > 0) {
-    facultadesOrdenadas.forEach(([facultad, cantidad]) => {
-      const nombreCompleto = obtenerNombreFacultad(facultad);
-      const porcentaje = ((cantidad / stats.total) * 100).toFixed(1);
-      detalles += `<div class="list-item"><span>${nombreCompleto}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
-    });
-  } else {
-    detalles += '<p style="text-align: center; color: #666;">No hay datos por facultad</p>';
-  }
-  
-  detalles += '</div>';
-
-  // Cantidad de Asesorías por Profesor agrupados por Facultad/Departamento
-  detalles += `<div class="chart-container">
-    <h3 class="chart-title">Cantidad de Asesorías por Profesor</h3>`;
-
-  // Agrupar profesores por facultad/departamento
-  const profesoresPorFacultad = {};
-  
-  datosFiltrados.forEach(item => {
-    const facultad = item.facultad_departamento || 'Sin Facultad';
-    const profesor = item.instructor;
+  if (tipo === 'profesores') {
+    detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Asesorías por Facultad/Departamento</h3>';
     
-    if (!profesoresPorFacultad[facultad]) {
-      profesoresPorFacultad[facultad] = {};
+    const facultadesOrdenadas = Object.entries(stats.facultadDepartamento)
+      .sort((a, b) => b[1] - a[1]);
+    
+    if (facultadesOrdenadas.length > 0) {
+      facultadesOrdenadas.forEach(([facultad, cantidad]) => {
+        const nombreCompleto = obtenerNombreFacultad(facultad);
+        const porcentaje = ((cantidad / stats.total) * 100).toFixed(1);
+        detalles += `<div class="list-item"><span>${nombreCompleto}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+      });
+    } else {
+      detalles += '<p style="text-align: center; color: #666;">No hay datos por facultad</p>';
     }
-    
-    profesoresPorFacultad[facultad][profesor] = (profesoresPorFacultad[facultad][profesor] || 0) + 1;
-  });
-
-  const facultadesConProfesores = Object.keys(profesoresPorFacultad).sort();
-  
-  // Crear botones para cada facultad/departamento
-  if (facultadesConProfesores.length > 0) {
-    detalles += '<div class="botones-sedes">';
-    
-    facultadesConProfesores.forEach(facultad => {
-      const facultadId = facultad.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-      const nombreCompleto = obtenerNombreFacultad(facultad);
-      const facultadCorta = nombreCompleto.replace('Facultad de ', '').replace('Departamento de ', '');
-      detalles += `
-        <button class="btn btn-secondary btn-sede" onclick="toggleProfesoresFacultad('${facultadId}')">
-          ${facultadCorta}
-        </button>`;
-    });
     
     detalles += '</div>';
 
-    // Crear secciones ocultas para cada facultad con sus profesores
-    facultadesConProfesores.forEach(facultad => {
-      const facultadId = facultad.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-      const profesores = profesoresPorFacultad[facultad];
-      const profesoresOrdenados = Object.entries(profesores).sort((a, b) => b[1] - a[1]);
+    detalles += `<div class="chart-container">
+      <h3 class="chart-title">Cantidad de Asesorías por Profesor</h3>`;
+
+    const profesoresPorFacultad = {};
+    
+    datosFiltrados.forEach(item => {
+      const facultad = item.facultad_departamento || 'Sin Facultad';
+      const profesor = item.instructor;
       
-      const nombreCompletoTitulo = obtenerNombreFacultad(facultad);
-      detalles += `
-        <div id="profesores${facultadId}" class="horario-info hidden">
-          <h4 class="horario-titulo">${nombreCompletoTitulo}</h4>`;
-      
-      if (profesoresOrdenados.length > 0) {
-        profesoresOrdenados.forEach(([profesor, cantidad]) => {
-          const promedio = promediosPorInstructor[profesor] || 'N/A';
-          detalles += `<div class="list-item">
-            <span>${profesor}</span>
-            <strong>${cantidad} asesorías<br><span style="font-size: 12px; font-weight: normal;">Calificación: ${promedio}</span></strong>
-          </div>`;
-        });
-      } else {
-        detalles += '<p style="text-align: center; color: #666;">No hay profesores en esta facultad</p>';
+      if (!profesoresPorFacultad[facultad]) {
+        profesoresPorFacultad[facultad] = {};
       }
       
-      detalles += '</div>';
+      profesoresPorFacultad[facultad][profesor] = (profesoresPorFacultad[facultad][profesor] || 0) + 1;
     });
-  } else {
-    detalles += '<p style="text-align: center; color: #666;">No hay datos de profesores disponibles</p>';
+
+    const facultadesConProfesores = Object.keys(profesoresPorFacultad).sort();
+    
+    if (facultadesConProfesores.length > 0) {
+      detalles += '<div class="botones-sedes">';
+      
+      facultadesConProfesores.forEach(facultad => {
+        const facultadId = facultad.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        const nombreCompleto = obtenerNombreFacultad(facultad);
+        const facultadCorta = nombreCompleto.replace('Facultad de ', '').replace('Departamento de ', '');
+        detalles += `
+          <button class="btn btn-secondary btn-sede" onclick="toggleProfesoresFacultad('${facultadId}')">
+            ${facultadCorta}
+          </button>`;
+      });
+      
+      detalles += '</div>';
+
+      facultadesConProfesores.forEach(facultad => {
+        const facultadId = facultad.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        const profesores = profesoresPorFacultad[facultad];
+        const profesoresOrdenados = Object.entries(profesores).sort((a, b) => b[1] - a[1]);
+        
+        const nombreCompletoTitulo = obtenerNombreFacultad(facultad);
+        detalles += `
+          <div id="profesores${facultadId}" class="horario-info hidden">
+            <h4 class="horario-titulo">${nombreCompletoTitulo}</h4>`;
+        
+        if (profesoresOrdenados.length > 0) {
+          profesoresOrdenados.forEach(([profesor, cantidad]) => {
+            const promedio = promediosPorInstructor[profesor] || 'N/A';
+            detalles += `<div class="list-item">
+              <span>${profesor}</span>
+              <strong>${cantidad} asesorías<br><span style="font-size: 12px; font-weight: normal;">Calificación: ${promedio}</span></strong>
+            </div>`;
+          });
+        } else {
+          detalles += '<p style="text-align: center; color: #666;">No hay profesores en esta facultad</p>';
+        }
+        
+        detalles += '</div>';
+      });
+    } else {
+      detalles += '<p style="text-align: center; color: #666;">No hay datos de profesores disponibles</p>';
+    }
+    
+    detalles += '</div>';
   }
-  
-  detalles += '</div>';
-}
 
   document.getElementById('detallesStats').innerHTML = detalles;
 }
 
 // ===================================
-// DESCARGAR DATOS
+// DESCARGAS Y EXCEL
 // ===================================
 async function descargarDatos() {
-  const desde = document.getElementById('fechaDesde').value;
-  const hasta = document.getElementById('fechaHasta').value;
-
-  if (!desde || !hasta) {
-    alert('Por favor seleccione ambas fechas');
-    return;
-  }
-
-  if (new Date(desde) > new Date(hasta)) {
-    alert('La fecha inicial no puede ser mayor que la fecha final');
-    return;
-  }
+  const fechas = validarRangoFechas();
+  if (!fechas) return;
+  
+  const { desde, hasta } = fechas;
 
   const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
-  btnDescarga.disabled = true;
-  btnDescarga.textContent = '⏳ Preparando descarga...';
+  desactivarBoton(btnDescarga, '⏳ Preparando descarga...');
 
   try {
-    // CARGAR DATOS SOLO CUANDO SE VA A DESCARGAR
     let url = `${SUPABASE_URL}/rest/v1/formularios?fecha=gte.${desde}T00:00:00&fecha=lte.${hasta}T23:59:59&order=fecha.asc`;
     
     const response = await fetch(url, {
@@ -1877,8 +1775,7 @@ async function descargarDatos() {
   } catch (error) {
     alert('Error al descargar datos: ' + error.message);
   } finally {
-    btnDescarga.disabled = false;
-    btnDescarga.textContent = textoOriginal;
+    reactivarBoton(btnDescarga, textoOriginal);
   }
 }
 
@@ -1889,11 +1786,9 @@ async function descargarTodo() {
 
   const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
-  btnDescarga.disabled = true;
-  btnDescarga.textContent = '⏳ Preparando descarga completa...';
+  desactivarBoton(btnDescarga, '⏳ Preparando descarga completa...');
 
   try {
-    // CARGAR TODOS LOS DATOS SOLO CUANDO SE VA A DESCARGAR
     const data = await supabaseQuery('formularios', { order: 'fecha.asc' });
     
     if (data.length === 0) {
@@ -1906,33 +1801,21 @@ async function descargarTodo() {
   } catch (error) {
     alert('Error al descargar datos: ' + error.message);
   } finally {
-    btnDescarga.disabled = false;
-    btnDescarga.textContent = textoOriginal;
+    reactivarBoton(btnDescarga, textoOriginal);
   }
 }
 
-
 async function descargarDocentes() {
-  const desde = document.getElementById('fechaDesde').value;
-  const hasta = document.getElementById('fechaHasta').value;
-
-  if (!desde || !hasta) {
-    alert('Por favor seleccione ambas fechas');
-    return;
-  }
-
-  if (new Date(desde) > new Date(hasta)) {
-    alert('La fecha inicial no puede ser mayor que la fecha final');
-    return;
-  }
+  const fechas = validarRangoFechas();
+  if (!fechas) return;
+  
+  const { desde, hasta } = fechas;
 
   const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
-  btnDescarga.disabled = true;
-  btnDescarga.textContent = '⏳ Preparando descarga...';
+  desactivarBoton(btnDescarga, '⏳ Preparando descarga...');
 
   try {
-    // CARGAR DATOS SOLO CUANDO SE VA A DESCARGAR
     let url = `${SUPABASE_URL}/rest/v1/formularios?fecha=gte.${desde}T00:00:00&fecha=lte.${hasta}T23:59:59&order=fecha.asc`;
     
     const response = await fetch(url, {
@@ -1955,24 +1838,13 @@ async function descargarDocentes() {
   } catch (error) {
     alert('Error al descargar datos: ' + error.message);
   } finally {
-    btnDescarga.disabled = false;
-    btnDescarga.textContent = textoOriginal;
+    reactivarBoton(btnDescarga, textoOriginal);
   }
 }
 
-
 function generarExcelSimplificado(datos, nombreArchivo) {
   const datosExcel = datos.map(fila => {
-    // Convertir fecha UTC a hora de Colombia
-    const fechaUTC = new Date(fila.fecha);
-    const fechaColombia = new Date(fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
-    
-    const horas = String(fechaColombia.getHours()).padStart(2, '0');
-    const minutos = String(fechaColombia.getMinutes()).padStart(2, '0');
-    const horaFormateada = `${horas}:${minutos}`;
-    
-    // Convertir Date a número de serie de Excel
-    const serialDate = (fechaColombia - new Date(1899, 11, 30)) / (24 * 60 * 60 * 1000);
+    const { serialDate, horaFormateada } = convertirFechaAColombia(fila.fecha);
     
     return {
       'Fecha': serialDate,
@@ -1991,26 +1863,7 @@ function generarExcelSimplificado(datos, nombreArchivo) {
   const ws = XLSX.utils.json_to_sheet(datosExcel);
 
   const range = XLSX.utils.decode_range(ws['!ref']);
-  
-  // Aplicar formato de fecha DD/MM/YYYY a la columna Fecha
-  for (let row = 1; row <= range.e.r; row++) {
-    const fechaCell = XLSX.utils.encode_cell({ r: row, c: 0 }); // Columna Fecha
-    if (ws[fechaCell] && row > 0) {
-      ws[fechaCell].t = 'n'; // Tipo numérico (Excel maneja fechas como números)
-      ws[fechaCell].z = 'dd/mm/yyyy'; // Formato día/mes/año
-    }
-  }
-  
-  // Aplicar formato a documento como número
-  for (let row = 1; row <= range.e.r; row++) {
-    const docCell = XLSX.utils.encode_cell({ r: row, c: 2 }); // Columna Documento
-    if (ws[docCell] && row > 0) {
-      ws[docCell].t = 'n'; // Tipo numérico
-      ws[docCell].z = '0'; // Formato sin decimales
-    }
-  }
-
-  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+  aplicarFormatoExcel(ws, range);
 
   ws['!cols'] = [
     { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
@@ -2025,16 +1878,7 @@ function generarExcelSimplificado(datos, nombreArchivo) {
 
 function generarExcelCompleto(datos, nombreArchivo) {
   const datosExcel = datos.map(fila => {
-    // Convertir fecha UTC a hora de Colombia
-    const fechaUTC = new Date(fila.fecha);
-    const fechaColombia = new Date(fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
-    
-    const horas = String(fechaColombia.getHours()).padStart(2, '0');
-    const minutos = String(fechaColombia.getMinutes()).padStart(2, '0');
-    const horaFormateada = `${horas}:${minutos}`;
-    
-    // Convertir Date a número de serie de Excel
-    const serialDate = (fechaColombia - new Date(1899, 11, 30)) / (24 * 60 * 60 * 1000);
+    const { serialDate, horaFormateada } = convertirFechaAColombia(fila.fecha);
     
     return {
       'Fecha': serialDate,
@@ -2065,26 +1909,7 @@ function generarExcelCompleto(datos, nombreArchivo) {
   const ws = XLSX.utils.json_to_sheet(datosExcel);
 
   const range = XLSX.utils.decode_range(ws['!ref']);
-  
-  // Aplicar formato de fecha DD/MM/YYYY a la columna Fecha
-  for (let row = 1; row <= range.e.r; row++) {
-    const fechaCell = XLSX.utils.encode_cell({ r: row, c: 0 }); // Columna Fecha
-    if (ws[fechaCell] && row > 0) {
-      ws[fechaCell].t = 'n'; // Tipo numérico (Excel maneja fechas como números)
-      ws[fechaCell].z = 'dd/mm/yyyy'; // Formato día/mes/año
-    }
-  }
-  
-  // Aplicar formato a documento como número
-  for (let row = 1; row <= range.e.r; row++) {
-    const docCell = XLSX.utils.encode_cell({ r: row, c: 2 }); // Columna Documento
-    if (ws[docCell] && row > 0) {
-      ws[docCell].t = 'n'; // Tipo numérico
-      ws[docCell].z = '0'; // Formato sin decimales
-    }
-  }
-
-  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+  aplicarFormatoExcel(ws, range);
 
   ws['!cols'] = [
     { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
@@ -2099,20 +1924,9 @@ function generarExcelCompleto(datos, nombreArchivo) {
   XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
 }
 
-
-
 function generarExcelDocentes(datos, nombreArchivo) {
   const datosExcel = datos.map(fila => {
-    // Convertir fecha UTC a hora de Colombia
-    const fechaUTC = new Date(fila.fecha);
-    const fechaColombia = new Date(fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
-    
-    const horas = String(fechaColombia.getHours()).padStart(2, '0');
-    const minutos = String(fechaColombia.getMinutes()).padStart(2, '0');
-    const horaFormateada = `${horas}:${minutos}`;
-    
-    // Convertir Date a número de serie de Excel
-    const serialDate = (fechaColombia - new Date(1899, 11, 30)) / (24 * 60 * 60 * 1000);
+    const { serialDate, horaFormateada } = convertirFechaAColombia(fila.fecha);
     
     return {
       'Fecha': serialDate,
@@ -2132,38 +1946,11 @@ function generarExcelDocentes(datos, nombreArchivo) {
   const ws = XLSX.utils.json_to_sheet(datosExcel);
 
   const range = XLSX.utils.decode_range(ws['!ref']);
-  
-  // Aplicar formato de fecha DD/MM/YYYY a la columna Fecha
-  for (let row = 1; row <= range.e.r; row++) {
-    const fechaCell = XLSX.utils.encode_cell({ r: row, c: 0 }); // Columna Fecha
-    if (ws[fechaCell] && row > 0) {
-      ws[fechaCell].t = 'n'; // Tipo numérico (Excel maneja fechas como números)
-      ws[fechaCell].z = 'dd/mm/yyyy'; // Formato día/mes/año
-    }
-  }
-  
-  // Aplicar formato a documento como número
-  for (let row = 1; row <= range.e.r; row++) {
-    const docCell = XLSX.utils.encode_cell({ r: row, c: 2 }); // Columna Documento
-    if (ws[docCell] && row > 0) {
-      ws[docCell].t = 'n'; // Tipo numérico
-      ws[docCell].z = '0'; // Formato sin decimales
-    }
-  }
-
-  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+  aplicarFormatoExcel(ws, range);
 
   ws['!cols'] = [
-    { wch: 12 }, // Fecha
-    { wch: 8 },  // Hora
-    { wch: 12 }, // Documento
-    { wch: 20 }, // Nombres
-    { wch: 20 }, // Apellidos
-    { wch: 35 }, // Programa
-    { wch: 20 }, // Facultad/Departamento
-    { wch: 25 }, // Instructor
-    { wch: 30 }, // Asignatura
-    { wch: 30 }  // Tema
+    { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
+    { wch: 35 }, { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 30 }
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "Docentes");
@@ -2171,8 +1958,6 @@ function generarExcelDocentes(datos, nombreArchivo) {
   const fechaHoy = new Date().toISOString().split('T')[0];
   XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
 }
-
-
 
 function cerrarSesionAdmin() {
   volverInicio();
@@ -2194,65 +1979,48 @@ function actualizarProgreso(paso) {
 }
 
 // ===================================
-// TOGGLE INSTRUCTORES POR SEDE EN ADMIN
+// TOGGLE DE SECCIONES ADMIN
 // ===================================
-function toggleInstructoresSede(sede) {
-  document.getElementById('instructoresNorteAdmin').classList.add('hidden');
-  document.getElementById('instructoresSurAdmin').classList.add('hidden');
+function toggleSeccionUnica(seccionesIds, seccionSeleccionada) {
+  seccionesIds.forEach(id => {
+    document.getElementById(id).classList.add('hidden');
+  });
   
-  if (sede === 'norte') {
-    document.getElementById('instructoresNorteAdmin').classList.toggle('hidden');
-  } else if (sede === 'sur') {
-    document.getElementById('instructoresSurAdmin').classList.toggle('hidden');
+  const elemento = document.getElementById(seccionSeleccionada);
+  if (elemento) {
+    elemento.classList.toggle('hidden');
   }
 }
 
-// ===================================
-// TOGGLE PROFESORES POR FACULTAD EN ADMIN
-// ===================================
-function toggleProfesoresFacultad(facultadId) {
-  // Ocultar todas las secciones de profesores
-  const todasLasSecciones = document.querySelectorAll('[id^="profesores"]');
-  todasLasSecciones.forEach(seccion => {
-    if (seccion.id.startsWith('profesores')) {
-      seccion.classList.add('hidden');
-    }
-  });
+function toggleInstructoresSede(sede) {
+  const sedeMap = {
+    'norte': 'instructoresNorteAdmin',
+    'sur': 'instructoresSurAdmin'
+  };
   
-  // Mostrar/ocultar la sección clickeada
+  toggleSeccionUnica(
+    ['instructoresNorteAdmin', 'instructoresSurAdmin'],
+    sedeMap[sede]
+  );
+}
+
+function toggleProfesoresFacultad(facultadId) {
+  const todasLasSecciones = document.querySelectorAll('[id^="profesores"]');
+  todasLasSecciones.forEach(seccion => seccion.classList.add('hidden'));
+  
   const seccionActual = document.getElementById('profesores' + facultadId);
   if (seccionActual) {
     seccionActual.classList.toggle('hidden');
   }
 }
 
-
-
 // ===================================
-// FUNCIÓN AUXILIAR PARA NOMBRES DE FACULTAD
+// FUNCIONES AUXILIARES
 // ===================================
 function obtenerNombreFacultad(codigo) {
-  const nombres = {
-    'DCB': 'Departamento de Ciencias Básicas',
-    'FCE': 'Facultad de Ciencias Empresariales',
-    'FCSH': 'Facultad de Ciencias Sociales y Humanas',
-    'FEDV': 'Facultad de Educación a Distancia y Virtual',
-    'FI': 'Facultad de Ingeniería'
-  };
-  return nombres[codigo] || codigo;
+  return NOMBRES_FACULTADES[codigo] || codigo;
 }
 
-// ===================================
-// INICIALIZACIÓN
-// ===================================
-window.onload = function() {
-  console.log('Sistema PMA con Supabase iniciado');
-  console.log('Los datos se cargarán solo cuando sean necesarios.');
-};
-
-// ===================================
-// MOSTRAR/OCULTAR CONTRASEÑA
-// ===================================
 function togglePassword() {
   const input = document.getElementById('adminContrasena');
   const button = input.nextElementSibling;
@@ -2266,9 +2034,6 @@ function togglePassword() {
   }
 }
 
-// ===================================
-// MOSTRAR/OCULTAR USUARIO
-// ===================================
 function toggleUsername() {
   const input = document.getElementById('adminDocumento');
   const button = input.nextElementSibling;
@@ -2282,7 +2047,6 @@ function toggleUsername() {
   }
 }
 
-
 // ===================================
 // GRÁFICAS
 // ===================================
@@ -2293,14 +2057,12 @@ function actualizarGrafica() {
   const data = window.datosFormulariosGlobal;
   if (!data || data.length === 0) return;
   
-  // Filtrar por tipo de instructor si no es "todos"
   let datosFiltrados = data;
   if (tipoInstructor !== 'todos') {
     datosFiltrados = data.filter(item => item.tipo_instructor === tipoInstructor);
   }
   
   if (datosFiltrados.length === 0) {
-    // Si no hay datos filtrados, mostrar gráfico vacío
     if (graficoTutorias) {
       graficoTutorias.destroy();
     }
@@ -2343,27 +2105,21 @@ function actualizarGrafica() {
   let valores = [];
   
   if (periodo === 'semanal') {
-    // Agrupar por semanas (Domingo a Sábado)
-    
-    // Encontrar la fecha más antigua y más reciente
     const fechas = datosFiltrados.map(item => new Date(item.fecha));
     const fechaMin = new Date(Math.min(...fechas));
     const fechaMax = new Date(Math.max(...fechas));
     
-    // Función para obtener el domingo de una fecha
     function obtenerDomingo(fecha) {
       const dia = fecha.getDay();
-      const diff = fecha.getDate() - dia; // Restar días para llegar al domingo
+      const diff = fecha.getDate() - dia;
       const domingo = new Date(fecha);
       domingo.setDate(diff);
       domingo.setHours(0, 0, 0, 0);
       return domingo;
     }
     
-    // Obtener el domingo de la primera semana
     let domingoActual = obtenerDomingo(fechaMin);
     
-    // Iterar por cada semana hasta cubrir todas las fechas
     const semanas = {};
     
     while (domingoActual <= fechaMax) {
@@ -2371,7 +2127,6 @@ function actualizarGrafica() {
       sabado.setDate(sabado.getDate() + 6);
       sabado.setHours(23, 59, 59, 999);
       
-      // Formatear las fechas para el label (SIN AÑO)
       const diaD = String(domingoActual.getDate()).padStart(2, '0');
       const mesD = String(domingoActual.getMonth() + 1).padStart(2, '0');
       
@@ -2380,7 +2135,6 @@ function actualizarGrafica() {
       
       const label = `${diaD}/${mesD} - ${diaS}/${mesS}`;
       
-      // Contar registros en esta semana
       const cantidad = datosFiltrados.filter(item => {
         const fechaItem = new Date(item.fecha);
         return fechaItem >= domingoActual && fechaItem <= sabado;
@@ -2388,7 +2142,6 @@ function actualizarGrafica() {
       
       semanas[label] = cantidad;
       
-      // Avanzar a la siguiente semana (siguiente domingo)
       domingoActual = new Date(domingoActual);
       domingoActual.setDate(domingoActual.getDate() + 7);
     }
@@ -2397,8 +2150,6 @@ function actualizarGrafica() {
     valores = Object.values(semanas);
     
   } else if (periodo === 'mensual') {
-    // Agrupar por meses completos
-    
     const meses = {};
     const nombresMesesCortos = [
       'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -2409,7 +2160,7 @@ function actualizarGrafica() {
       const fecha = new Date(item.fecha);
       const mes = fecha.getMonth();
       const año = fecha.getFullYear();
-      const claveMes = `${año}-${String(mes + 1).padStart(2, '0')}`; // Para ordenar
+      const claveMes = `${año}-${String(mes + 1).padStart(2, '0')}`;
       const labelMes = `${nombresMesesCortos[mes]} ${año}`;
       
       if (!meses[claveMes]) {
@@ -2422,19 +2173,16 @@ function actualizarGrafica() {
       meses[claveMes].cantidad++;
     });
     
-    // Ordenar por fecha (año-mes)
     const clavesMesesOrdenadas = Object.keys(meses).sort();
     
     labels = clavesMesesOrdenadas.map(clave => meses[clave].label);
     valores = clavesMesesOrdenadas.map(clave => meses[clave].cantidad);
   }
   
-  // Destruir gráfico anterior si existe
   if (graficoTutorias) {
     graficoTutorias.destroy();
   }
   
-  // Crear nuevo gráfico
   const ctx = document.getElementById('graficaTutorias').getContext('2d');
   graficoTutorias = new Chart(ctx, {
     type: 'bar',
@@ -2481,3 +2229,22 @@ function actualizarGrafica() {
     }
   });
 }
+
+// ===================================
+// INICIALIZACIÓN DEL SISTEMA
+// ===================================
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Sistema PMA con Supabase iniciado');
+  console.log('Los datos se cargarán solo cuando sean necesarios.');
+  
+  const calificaciones = document.querySelectorAll('input[name="calificacion"]');
+  calificaciones.forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.checked) {
+        const step4 = document.getElementById('step4');
+        step4.classList.add('completed');
+        step4.classList.remove('active');
+      }
+    });
+  });
+});
