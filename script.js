@@ -2483,17 +2483,8 @@ window.addEventListener('popstate', function(event) {
 // Función principal que maneja la lógica de retroceso
 function manejarRetroceso() {
   
-  // REGLA ESPECIAL: Si estamos en "Bienvenido", PERMITIR salir de la app
-  if (pantallaActual === 'pantallaInicio') {
-    // No hacer nada, dejar que el navegador procese el retroceso normalmente
-    // Esto permite que el usuario salga de la aplicación
-    return;
-  }
-  
   // REGLA 1: Si estoy en "Llenar Formulario" → Volver a "Bienvenido"
   if (pantallaActual === 'pantallaLogin') {
-    // Prevenir salida de la app
-    window.history.pushState({ pantalla: 'pantallaInicio' }, '', window.location.href);
     volverInicio();
     return;
   }
@@ -2518,22 +2509,17 @@ function manejarRetroceso() {
   
   // REGLA 4: Si estoy en "Acceso de Administrador" → Volver a "Bienvenido"
   if (pantallaActual === 'pantallaAdminLogin') {
-    // Prevenir salida de la app
-    window.history.pushState({ pantalla: 'pantallaInicio' }, '', window.location.href);
     volverInicio();
     return;
   }
   
   // REGLA 5: Si estoy en "Panel de Administración" → Volver a "Acceso de Administrador"
   if (pantallaActual === 'pantallaAdmin') {
-    // Prevenir salida de la app
-    window.history.pushState({ pantalla: 'pantallaAdminLogin' }, '', window.location.href);
     mostrarLoginAdmin();
     return;
   }
   
-  // Por defecto, volver al inicio sin salir de la app
-  window.history.pushState({ pantalla: 'pantallaInicio' }, '', window.location.href);
+  // Por defecto, volver al inicio
   volverInicio();
 }
 
@@ -2553,4 +2539,3 @@ window.addEventListener('load', function() {
 if ('scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual';
 }
-
