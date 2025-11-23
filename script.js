@@ -1065,36 +1065,16 @@ async function guardarFormulario(event) {
   const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
   
   if (!calificacionRadio) {
-    const grupoCalificacion = document.getElementById('grupoCalificacion');
-    
     // Mensaje de error en la parte superior
     mostrarMensaje('mensajeFormulario', '⚠️ Por favor seleccione una calificación para la tutoría', 'error');
     
     // Hacer scroll hacia la calificación
     setTimeout(() => {
-      grupoCalificacion.scrollIntoView({ 
+      document.getElementById('grupoCalificacion').scrollIntoView({ 
         behavior: 'smooth', 
         block: 'center' 
       });
     }, 100);
-    
-    // Efecto visual de resaltado (parpadeo amarillo)
-    setTimeout(() => {
-      grupoCalificacion.style.background = '#fff3cd';
-      grupoCalificacion.style.padding = '20px';
-      grupoCalificacion.style.borderRadius = '8px';
-      grupoCalificacion.style.border = '3px solid #ffffff';
-      grupoCalificacion.style.transition = 'all 0.3s';
-      grupoCalificacion.style.boxShadow = '0 0 20px rgba(255, 193, 7, 0.5)';
-      
-      // Quitar el resaltado después de 2 segundos
-      setTimeout(() => {
-        grupoCalificacion.style.background = '';
-        grupoCalificacion.style.padding = '';
-        grupoCalificacion.style.border = '';
-        grupoCalificacion.style.boxShadow = '';
-      }, 2000);
-    }, 600);
     
     return; // Detener el envío del formulario
   }
