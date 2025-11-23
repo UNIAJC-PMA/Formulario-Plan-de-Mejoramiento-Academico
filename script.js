@@ -1065,19 +1065,17 @@ async function guardarFormulario(event) {
   const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
   
   if (!calificacionRadio) {
-    // Mensaje de error en la parte superior
-    mostrarMensaje('mensajeFormulario', '⚠️ Por favor seleccione una calificación para la tutoría', 'error');
-    
-    // Hacer scroll hacia la calificación
-    setTimeout(() => {
-      document.getElementById('grupoCalificacion').scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-      });
-    }, 100);
-    
-    return; // Detener el envío del formulario
-  }
+  // Mostrar tooltip
+  document.getElementById('tooltipCalificacion').classList.remove('hidden');
+  
+  // Hacer scroll
+  document.getElementById('grupoCalificacion').scrollIntoView({ 
+    behavior: 'instant', 
+    block: 'center' 
+  });
+  
+  return;
+}
   
   // Desactivar botón para evitar doble envío
   btnEnviar.disabled = true;
