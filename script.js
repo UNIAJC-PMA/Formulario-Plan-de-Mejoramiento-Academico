@@ -8,6 +8,7 @@ let datosEstudiante = null;
 let instructorActual = null;
 let formularioEnviandose = false;
 let graficoTutorias = null;
+let seccionFormularioActual = 1; // 1 = primera sección, 2 = segunda sección
 
 // Cache de datos precargados
 const datosCache = {
@@ -945,14 +946,143 @@ function cargarTemas() {
     labelTema.textContent = 'Tema de la tutoría *';
   }
 
-  document.getElementById('grupoMotivo').classList.remove('hidden');
+document.getElementById('grupoMotivo').classList.remove('hidden');
   document.getElementById('grupoCalificacion').classList.remove('hidden');
   document.getElementById('grupoSugerencias').classList.remove('hidden');
   document.getElementById('btnEnviar').classList.remove('hidden');
   
+  // Mostrar navegación del formulario
+  document.getElementById('formNavigation').classList.remove('hidden');
+  
+  // Inicialmente mostrar solo la primera sección
+  seccionFormularioActual = 1;
+  mostrarSeccionFormulario(1);
+  
   formularioEnviandose = true;
   actualizarBotonCerrarSesion();
   actualizarProgreso(4);
+}
+
+// ===================================
+// NAVEGACIÓN ENTRE SECCIONES DEL FORMULARIO
+// ===================================
+function cambiarSeccionFormulario(direccion) {
+  if (direccion === 'siguiente' && seccionFormularioActual === 1) {
+    // Validar que los campos obligatorios de la primera sección estén completos
+    const camposRequeridos = [
+      { id: 'semestre', nombre: 'Semestre' },
+      { id: 'grupo', nombre: 'Grupo Académico' },
+      { id: 'tipoAcompanamiento', nombre: 'Tipo de acompañamiento' },
+      { id: 'sedeTutoria', nombre: 'Sede' },
+      { id: 'tipoInstructor', nombre: '¿Quién impartió la tutoría?' },
+      { id: 'instructor', nombre: 'Instructor' },
+      { id: 'asignatura', nombre: 'Asignatura' },
+      { id: 'tema', nombre: 'Tema' },
+      { id: 'motivoConsulta', nombre: 'Motivo de consulta' }
+    ];
+    
+    // Verificar campos especiales
+    const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
+    if (tipoAcompanamiento === 'Curso y/o capacitación') {
+      const tituloCurso = document.getElementById('tituloCurso').value.trim();
+      if (!tituloCurso) {
+        mostrarMensaje('mensajeFormulario', 'Por favor complete el título del curso/capacitación', 'error');
+        return;
+      }
+    }
+    
+    const tipoInstructor = document.getElementById('tipoInstructor').value;
+    if (tipoInstructor === 'Profesor') {
+      const facultadDepartamento = document.getElementById('facultadDepartamento').value;
+      if (!facultadDepartamento) {
+        mostrarMensaje('mensajeFormulario', 'Por favor seleccione la Facultad/Departamento', 'error');
+        return;
+      }
+    }
+    
+    const asignatura = document.getElementById('asignatura').value;
+    if (asignatura === 'Otra') {
+      const otraAsignatura = document.getElementById('otraAsignatura').value.trim();
+      if (!otraAsignatura) {
+        mostrarMensaje('mensajeFormulario', 'Por favor especifique la asignatura', 'error');
+        return;
+      }
+    }
+    
+    const tema = document.getElementById('tema').value;
+    const selectTema = document.getElementById('tema');
+    if (selectTema.style.display !== 'none' && tema === 'Otro') {
+      const otroTema = document.getElementById('otroTema').value.trim();
+      if (!otroTema) {
+        mostrarMensaje('mensajeFormulario', 'Por favor especifique el tema', 'error');
+        return;
+      }
+    } else if (selectTema.style.display === 'none') {
+      const otroTema = document.getElementById('otroTema').value.trim();
+      if (!otroTema) {
+        mostrarMensaje('mensajeFormulario', 'Por favor ingrese el tema de la tutoría', 'error');
+        return;
+      }
+    }
+    
+    // Validar campos básicos
+    for (const campo of camposRequeridos) {
+      const elemento = document.getElementById(campo.id);
+      if (!elemento.value || elemento.value === '') {
+        mostrarMensaje('mensajeFormulario', `Por favor complete el campo: ${campo.nombre}`, 'error');
+        return;
+      }
+    }
+    
+    // Si todo está completo, pasar a la siguiente sección
+    seccionFormularioActual = 2;
+    mostrarSeccionFormulario(2);
+    
+  } else if (direccion === 'atras' && seccionFormularioActual === 2) {
+    seccionFormularioActual = 1;
+    mostrarSeccionFormulario(1);
+  }
+}
+
+function mostrarSeccionFormulario(seccion) {
+  const btnAtras = document.getElementById('btnAtras');
+  const btnSiguiente = document.getElementById('btnSiguiente');
+  const btnEnviar = document.getElementById('btnEnviar');
+  
+  // Ocultar mensaje de error si existe
+  document.getElementById('mensajeFormulario').innerHTML = '';
+  
+  if (seccion === 1) {
+    // PRIMERA SECCIÓN: Mostrar campos desde semestre hasta motivo de consulta
+    // Ocultar segunda sección
+    document.getElementById('grupoCalificacion').classList.add('hidden');
+    document.getElementById('grupoSugerencias').classList.add('hidden');
+    btnEnviar.classList.add('hidden');
+    
+    // Mostrar flecha derecha, ocultar flecha izquierda
+    btnAtras.classList.add('hidden');
+    btnSiguiente.classList.remove('hidden');
+    
+    // Hacer scroll al inicio del formulario
+    setTimeout(() => {
+      document.getElementById('formTutoria').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    
+  } else if (seccion === 2) {
+    // SEGUNDA SECCIÓN: Mostrar calificación y sugerencias
+    document.getElementById('grupoCalificacion').classList.remove('hidden');
+    document.getElementById('grupoSugerencias').classList.remove('hidden');
+    btnEnviar.classList.remove('hidden');
+    
+    // Mostrar flecha izquierda, ocultar flecha derecha
+    btnAtras.classList.remove('hidden');
+    btnSiguiente.classList.add('hidden');
+    
+    // Hacer scroll a la sección de calificación
+    setTimeout(() => {
+      document.getElementById('grupoCalificacion').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }
 }
 
 function toggleOtroTema() {
@@ -1241,6 +1371,10 @@ else {
     document.getElementById('btnEnviar').classList.add('hidden');
     formularioEnviandose = false;
     
+    // Ocultar navegación del formulario
+    document.getElementById('formNavigation').classList.add('hidden');
+    seccionFormularioActual = 1;
+    
     setTimeout(() => {
       modal.style.display = 'none';
       modal.classList.add('hidden');
@@ -1260,6 +1394,7 @@ function cerrarSesion() {
   datosEstudiante = null;
   instructorActual = null;
   formularioEnviandose = false;
+  seccionFormularioActual = 1; // Resetear sección
   
   // REACTIVAR BOTÓN DE ENVIAR
   const btnEnviar = document.getElementById('btnEnviar');
