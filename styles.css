@@ -1338,7 +1338,16 @@ select option[value="Otro"] {
    PAGINACIÓN DEL FORMULARIO
    =================================== */
 .pagina-formulario {
-  animation: fadeInPage 0.4s ease;
+  animation: fadeInPage 0.3s ease;
+  will-change: opacity, transform;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+@media (max-width: 768px) {
+  .pagina-formulario {
+    animation: fadeInPage 0.2s ease; /* Más rápido en móviles */
+  }
 }
 
 @keyframes fadeInPage {
