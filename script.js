@@ -1062,6 +1062,24 @@ async function guardarFormulario(event) {
   const btnEnviar = document.getElementById('btnEnviar');
   const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
   
+  // Si no hay calificación, forzar la validación nativa del navegador
+  if (!calificacionRadio) {
+    const primerRadio = document.getElementById('cal1');
+    
+    // Hacer scroll primero
+    document.getElementById('grupoCalificacion').scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'center' 
+    });
+    
+    // Después del scroll, mostrar el mensaje nativo del navegador
+    setTimeout(() => {
+      primerRadio.reportValidity();
+    }, 500);
+    
+    return;
+  }
+  
   btnEnviar.disabled = true;
   btnEnviar.textContent = '⏳ Enviando...';
   btnEnviar.style.opacity = '0.6';
