@@ -1067,13 +1067,10 @@ async function guardarFormulario(event) {
   if (!calificacionRadio) {
     const grupoCalificacion = document.getElementById('grupoCalificacion');
     
-    if (grupoCalificacion.classList.contains('hidden')) {
-      mostrarMensaje('mensajeFormulario', 'Debe completar el formulario hasta la sección de calificación', 'error');
-      return;
-    }
+    // Mensaje de error en la parte superior
+    mostrarMensaje('mensajeFormulario', '⚠️ Por favor seleccione una calificación para la tutoría', 'error');
     
-    mostrarMensaje('mensajeFormulario', 'seleccione una calificación para la tutoría', 'error');
-    
+    // Hacer scroll hacia la calificación
     setTimeout(() => {
       grupoCalificacion.scrollIntoView({ 
         behavior: 'smooth', 
@@ -1081,14 +1078,16 @@ async function guardarFormulario(event) {
       });
     }, 100);
     
+    // Efecto visual de resaltado (parpadeo amarillo)
     setTimeout(() => {
       grupoCalificacion.style.background = '#fff3cd';
       grupoCalificacion.style.padding = '20px';
       grupoCalificacion.style.borderRadius = '8px';
-      grupoCalificacion.style.border = '3px solid #ffffffff';
+      grupoCalificacion.style.border = '3px solid #ffffff';
       grupoCalificacion.style.transition = 'all 0.3s';
-      grupoCalificacion.style.boxShadow = '0 0 20px rgba(255, 255, 255, 0.5)';
+      grupoCalificacion.style.boxShadow = '0 0 20px rgba(255, 193, 7, 0.5)';
       
+      // Quitar el resaltado después de 2 segundos
       setTimeout(() => {
         grupoCalificacion.style.background = '';
         grupoCalificacion.style.padding = '';
@@ -1097,7 +1096,7 @@ async function guardarFormulario(event) {
       }, 2000);
     }, 600);
     
-    return;
+    return; // Detener el envío del formulario
   }
   
   // Desactivar botón para evitar doble envío
@@ -1114,6 +1113,8 @@ async function guardarFormulario(event) {
   const verificacion = await verificarRegistroRecenteConInstructor(datosEstudiante.documento, instructorSeleccionado);
   
   if (!verificacion.puedeRegistrar) {
+    const mensajeElement = document.getElementById('mensajeFormulario');
+    
     mostrarMensaje('mensajeFormulario', 
       `Ya tienes una tutoría reciente con este tutor. Podrás registrar otra en ${verificacion.tiempoRestante}, o puedes realizarla con otro tutor si lo prefieres.`, 
       'error');
@@ -1125,7 +1126,6 @@ async function guardarFormulario(event) {
     btnEnviar.style.cursor = 'pointer';
     
     setTimeout(() => {
-      const mensajeElement = document.getElementById('mensajeFormulario');
       mensajeElement.scrollIntoView({ 
         behavior: 'smooth', 
         block: 'center' 
@@ -1150,38 +1150,38 @@ async function guardarFormulario(event) {
   }
 
   // Obtener tema (puede ser personalizado)
-const selectTema = document.getElementById('tema');
-const inputTema = document.getElementById('otroTema');
-let tema = '';
+  const selectTema = document.getElementById('tema');
+  const inputTema = document.getElementById('otroTema');
+  let tema = '';
 
-// Caso 1: Select visible y con valor "Otro"
-if (selectTema.value === 'Otro') {
-  tema = inputTema.value.trim().toUpperCase();
-  if (!tema) {
-    mostrarMensaje('mensajeFormulario', 'Por favor especifique el tema', 'error');
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    btnEnviar.style.opacity = '1';
-    btnEnviar.style.cursor = 'pointer';
-    return;
+  // Caso 1: Select visible y con valor "Otro"
+  if (selectTema.value === 'Otro') {
+    tema = inputTema.value.trim().toUpperCase();
+    if (!tema) {
+      mostrarMensaje('mensajeFormulario', 'Por favor especifique el tema', 'error');
+      btnEnviar.disabled = false;
+      btnEnviar.textContent = 'Enviar Formulario';
+      btnEnviar.style.opacity = '1';
+      btnEnviar.style.cursor = 'pointer';
+      return;
+    }
   }
-}
-// Caso 2: Select oculto (no hay temas en BD o asignatura es "Otra")
-else if (selectTema.style.display === 'none') {
-  tema = inputTema.value.trim().toUpperCase();
-  if (!tema) {
-    mostrarMensaje('mensajeFormulario', 'Por favor ingrese el tema de la tutoría', 'error');
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    btnEnviar.style.opacity = '1';
-    btnEnviar.style.cursor = 'pointer';
-    return;
+  // Caso 2: Select oculto (no hay temas en BD o asignatura es "Otra")
+  else if (selectTema.style.display === 'none') {
+    tema = inputTema.value.trim().toUpperCase();
+    if (!tema) {
+      mostrarMensaje('mensajeFormulario', 'Por favor ingrese el tema de la tutoría', 'error');
+      btnEnviar.disabled = false;
+      btnEnviar.textContent = 'Enviar Formulario';
+      btnEnviar.style.opacity = '1';
+      btnEnviar.style.cursor = 'pointer';
+      return;
+    }
   }
-}
-// Caso 3: Select visible con tema normal seleccionado
-else {
-  tema = selectTema.value;
-}
+  // Caso 3: Select visible con tema normal seleccionado
+  else {
+    tema = selectTema.value;
+  }
 
   const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
   const tituloCurso = tipoAcompanamiento === 'Curso y/o capacitación' 
