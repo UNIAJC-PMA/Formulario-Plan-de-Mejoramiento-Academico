@@ -299,157 +299,167 @@
 
       <div id="mensajeFormulario"></div>
       <form id="formTutoria" onsubmit="guardarFormulario(event)">
-        <div class="form-group">
-          <label>Semestre actual *</label>
-          <select id="semestre" required>
-            <option value="">Seleccione el semestre</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="10">10</option>
-            <option value="11">11</option>
-            <option value="12">12</option>
-          </select>
-        </div>
+        <!-- PÁGINA 1 DEL FORMULARIO -->
+<div id="paginaFormulario1" class="pagina-formulario">
+  <div class="form-group">
+    <label>Semestre actual *</label>
+    <select id="semestre" required>
+      <option value="">Seleccione el semestre</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+      <option value="7">7</option>
+      <option value="8">8</option>
+      <option value="9">9</option>
+      <option value="10">10</option>
+      <option value="11">11</option>
+      <option value="12">12</option>
+    </select>
+  </div>
 
-        <div class="form-group">
-          <label>Grupo Académico *</label>
-          <input type="text" id="grupo" required class="uppercase-input" placeholder="Ej: B1303A, 2303A" oninput="this.value = this.value.replace(/[^A-Za-z0-9-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="on" name="grupo">
-        </div>
+  <div class="form-group">
+    <label>Grupo Académico *</label>
+    <input type="text" id="grupo" required class="uppercase-input" placeholder="Ej: B1303A, 2303A" oninput="this.value = this.value.replace(/[^A-Za-z0-9-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="on" name="grupo">
+  </div>
 
-        <div class="form-group">
-          <label>Tipo de acompañamiento académico *</label>
-          <select id="tipoAcompanamiento" required onchange="toggleTituloCurso()">
-            <option value="">Seleccione una opción</option>
-            <option value="Tutoría">Tutoría</option>
-            <option value="Curso y/o capacitación">Curso y/o capacitación</option>
-          </select>
-        </div>
+  <div class="form-group">
+    <label>Tipo de acompañamiento académico *</label>
+    <select id="tipoAcompanamiento" required onchange="toggleTituloCurso()">
+      <option value="">Seleccione una opción</option>
+      <option value="Tutoría">Tutoría</option>
+      <option value="Curso y/o capacitación">Curso y/o capacitación</option>
+    </select>
+  </div>
 
-        <div class="form-group hidden" id="grupoTituloCurso">
-          <label>Título del curso/capacitación *</label>
-          <input type="text" id="tituloCurso" class="uppercase-input" placeholder="Ingrese el título del curso" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,\-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="off">
-        </div>
+  <div class="form-group hidden" id="grupoTituloCurso">
+    <label>Título del curso/capacitación *</label>
+    <input type="text" id="tituloCurso" class="uppercase-input" placeholder="Ingrese el título del curso" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,\-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="off">
+  </div>
 
-        <div class="form-group">
-          <label>Sede *</label>
-  <select id="sedeTutoria" required onchange="cargarInstructores()">
-    <option value="">Seleccione una sede</option>
-    <option value="Norte">Norte</option>
-    <option value="Sur">Sur</option>
-    <option value="Virtual">Virtual</option>
-  </select>
+  <div class="form-group">
+    <label>Sede *</label>
+    <select id="sedeTutoria" required onchange="cargarInstructores()">
+      <option value="">Seleccione una sede</option>
+      <option value="Norte">Norte</option>
+      <option value="Sur">Sur</option>
+      <option value="Virtual">Virtual</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>¿Quién impartió la tutoría? *</label>
+    <select id="tipoInstructor" required onchange="cargarInstructores()">
+      <option value="">Seleccione una opción</option>
+      <option value="Tutor">Tutor</option>
+      <option value="Profesor">Profesor</option>
+    </select>
+  </div>
+
+  <div class="form-group hidden" id="grupoFacultadDepartamento">
+    <label>Facultad/Departamento *</label>
+    <select id="facultadDepartamento" onchange="cargarProfesoresPorFacultad()">
+      <option value="">Seleccione una facultad/departamento</option>
+      <option value="DCB">Departamento de Ciencias Básicas</option>
+      <option value="FCE">Facultad de Ciencias Empresariales</option>
+      <option value="FCSH">Facultad de Ciencias Sociales y Humanas</option>
+      <option value="FEDV">Facultad de Educación a Distancia y Virtual</option>
+      <option value="FI">Facultad de Ingeniería</option>
+    </select>
+  </div>
+
+  <div class="form-group hidden" id="grupoInstructor">
+    <label id="labelInstructor">Instructor *</label>
+    <select id="instructor" required onchange="cargarMaterias()">
+      <option value="">Seleccione un instructor</option>
+    </select>
+  </div>
+
+  <div class="form-group hidden" id="grupoMateria">
+    <label>Asignatura *</label>
+    <select id="asignatura" required onchange="cargarTemas()">
+      <option value="">Seleccione una asignatura</option>
+    </select>
+    <div id="otraAsignaturaContainer" class="otro-tema hidden">
+      <input type="text" id="otraAsignatura" placeholder="Especifique la asignatura" class="uppercase-input" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,\-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="off">
+    </div>
+  </div>
+
+  <div class="form-group hidden" id="grupoTema">
+    <label>Tema de la tutoría *</label>
+    <select id="tema" required onchange="toggleOtroTema()">
+      <option value="">Seleccione un tema</option>
+    </select>
+    <div id="otroTemaContainer" class="otro-tema hidden">
+      <input type="text" id="otroTema" placeholder="Especifique el tema" class="uppercase-input" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,\-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="off">
+    </div>
+  </div>
+
+  <div class="form-group hidden" id="grupoMotivo">
+    <label>Motivo de consulta *</label>
+    <select id="motivoConsulta" required>
+      <option value="">Seleccione un motivo</option>
+      <option value="Refuerzo y preparación">Refuerzo y preparación</option>
+      <option value="Inquietud e inseguridad">Inquietud e inseguridad</option>
+      <option value="No entiende el tema">No entiende el tema</option>
+      <option value="Remite el docente">Remite el docente</option>
+      <option value="Remite el Programa de Atención Integral (PAI)">Remite el Programa de Atención Integral (PAI)</option>
+      <option value="Calificaciones bajas">Calificaciones bajas</option>
+      <option value="Todas las anteriores">Todas las anteriores</option>
+    </select>
+  </div>
+
+  <!-- Botones de navegación página 1 -->
+  <div class="navegacion-formulario">
+    <button type="button" class="btn-flecha btn-flecha-derecha" onclick="avanzarPagina()" title="Siguiente">
+      ➜
+    </button>
+  </div>
 </div>
 
-        <div class="form-group">
-          <label>¿Quién impartió la tutoría? *</label>
-          <select id="tipoInstructor" required onchange="cargarInstructores()">
-            <option value="">Seleccione una opción</option>
-            <option value="Tutor">Tutor</option>
-            <option value="Profesor">Profesor</option>
-          </select>
-        </div>
+<!-- PÁGINA 2 DEL FORMULARIO -->
+<div id="paginaFormulario2" class="pagina-formulario hidden">
+  <div class="form-group" id="grupoCalificacion">
+    <label>Calificación de la tutoría *</label>
+    <p class="texto-calificacion">
+      Evalúe la calidad de la tutoría recibida<br>
+      1 = Deficiente<br>
+      5 = Excelente
+    </p>
+    <div class="rating">
+      <input type="radio" name="calificacion" id="cal1" value="1">
+      <label for="cal1">1</label>
+      <input type="radio" name="calificacion" id="cal2" value="2">
+      <label for="cal2">2</label>
+      <input type="radio" name="calificacion" id="cal3" value="3">
+      <label for="cal3">3</label>
+      <input type="radio" name="calificacion" id="cal4" value="4">
+      <label for="cal4">4</label>
+      <input type="radio" name="calificacion" id="cal5" value="5">
+      <label for="cal5">5</label>
+    </div>
+  </div>
 
-        <!-- CORREGIDO: Sin required inicialmente, se agrega dinámicamente con JS -->
-<div class="form-group hidden" id="grupoFacultadDepartamento">
-  <label>Facultad/Departamento *</label>
-  <select id="facultadDepartamento" onchange="cargarProfesoresPorFacultad()">
-    <option value="">Seleccione una facultad/departamento</option>
-    <option value="DCB">Departamento de Ciencias Básicas</option>
-    <option value="FCE">Facultad de Ciencias Empresariales</option>
-    <option value="FCSH">Facultad de Ciencias Sociales y Humanas</option>
-    <option value="FEDV">Facultad de Educación a Distancia y Virtual</option>
-    <option value="FI">Facultad de Ingeniería</option>
-  </select>
+  <div class="form-group" id="grupoSugerencias">
+    <label>Sugerencias o Comentarios</label>
+    <textarea id="sugerencias" class="uppercase-input" placeholder="Escriba aquí sus sugerencias, comentarios o recomendaciones" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,.\-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="off"></textarea>
+    <label class="checkbox-label">
+      <input type="checkbox" id="ningunaSugerencia" onchange="toggleSugerencias()"> No tengo sugerencias
+    </label>
+  </div>
+
+  <!-- Botones de navegación página 2 -->
+  <div class="navegacion-formulario">
+    <button type="button" class="btn-flecha btn-flecha-izquierda" onclick="retrocederPagina()" title="Anterior">
+      ➜
+    </button>
+  </div>
 </div>
 
-        <div class="form-group hidden" id="grupoInstructor">
-          <label id="labelInstructor">Instructor *</label>
-          <select id="instructor" required onchange="cargarMaterias()">
-            <option value="">Seleccione un instructor</option>
-          </select>
-        </div>
-
-        <div class="form-group hidden" id="grupoMateria">
-          <label>Asignatura *</label>
-          <select id="asignatura" required onchange="cargarTemas()">
-            <option value="">Seleccione una asignatura</option>
-          </select>
-          <div id="otraAsignaturaContainer" class="otro-tema hidden">
-            <input type="text" id="otraAsignatura" placeholder="Especifique la asignatura" class="uppercase-input" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,\-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="off">
-          </div>
-        </div>
-
-        <div class="form-group hidden" id="grupoTema">
-          <label>Tema de la tutoría *</label>
-          <select id="tema" required onchange="toggleOtroTema()">
-            <option value="">Seleccione un tema</option>
-          </select>
-          <div id="otroTemaContainer" class="otro-tema hidden">
-            <input type="text" id="otroTema" placeholder="Especifique el tema" class="uppercase-input" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,\-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="off">
-          </div>
-        </div>
-
-        <div class="form-group hidden" id="grupoMotivo">
-          <label>Motivo de consulta *</label>
-          <select id="motivoConsulta" required>
-            <option value="">Seleccione un motivo</option>
-            <option value="Refuerzo y preparación">Refuerzo y preparación</option>
-            <option value="Inquietud e inseguridad">Inquietud e inseguridad</option>
-            <option value="No entiende el tema">No entiende el tema</option>
-            <option value="Remite el docente">Remite el docente</option>
-            <option value="Remite el Programa de Atención Integral (PAI)">Remite el Programa de Atención Integral (PAI)</option>
-            <option value="Calificaciones bajas">Calificaciones bajas</option>
-            <option value="Todas las anteriores">Todas las anteriores</option>
-          </select>
-        </div>
-
-
-        <!-- Navegación entre secciones del formulario -->
-        <div class="form-navigation hidden" id="formNavigation">
-          <button type="button" class="nav-arrow nav-arrow-left hidden" id="btnAtras" onclick="cambiarSeccionFormulario('atras')">
-            &#8592;
-          </button>
-          <button type="button" class="nav-arrow nav-arrow-right" id="btnSiguiente" onclick="cambiarSeccionFormulario('siguiente')">
-            &#8594;
-          </button>
-        </div>
-
-        
-       <div class="form-group hidden" id="grupoCalificacion">
-          <label>Calificación de la tutoría *</label>
-          <p class="texto-calificacion">
-            Evalúe la calidad de la tutoría recibida<br>
-            1 = Deficiente<br>
-            5 = Excelente
-          </p>
-          <div class="rating">
-            <input type="radio" name="calificacion" id="cal1" value="1">
-            <label for="cal1">1</label>
-            <input type="radio" name="calificacion" id="cal2" value="2">
-            <label for="cal2">2</label>
-            <input type="radio" name="calificacion" id="cal3" value="3">
-            <label for="cal3">3</label>
-            <input type="radio" name="calificacion" id="cal4" value="4">
-            <label for="cal4">4</label>
-            <input type="radio" name="calificacion" id="cal5" value="5">
-            <label for="cal5">5</label>
-          </div>
-        </div>
-
-        <div class="form-group hidden" id="grupoSugerencias">
-  <label>Sugerencias o Comentarios</label>
-  <textarea id="sugerencias" class="uppercase-input" placeholder="Escriba aquí sus sugerencias, comentarios o recomendaciones" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,.\-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="off"></textarea>
-  <label class="checkbox-label">
-    <input type="checkbox" id="ningunaSugerencia" onchange="toggleSugerencias()"> No tengo sugerencias
-  </label>
-</div>
+<button type="submit" class="btn hidden" id="btnEnviar">Enviar Formulario</button>
+<button type="button" class="btn btn-secondary" id="btnCancelarFormulario">Cancelar</button>
 
         <button type="submit" class="btn hidden" id="btnEnviar">Enviar Formulario</button>
         <button type="button" class="btn btn-secondary" id="btnCancelarFormulario">Cancelar</button>
