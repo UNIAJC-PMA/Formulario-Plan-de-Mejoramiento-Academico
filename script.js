@@ -1060,24 +1060,8 @@ async function guardarFormulario(event) {
   event.preventDefault();
   
   const btnEnviar = document.getElementById('btnEnviar');
-  
-  // Validar la calificación
   const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
   
-  if (!calificacionRadio) {
-  // Mostrar tooltip
-  document.getElementById('tooltipCalificacion').classList.remove('hidden');
-  
-  // Hacer scroll
-  document.getElementById('grupoCalificacion').scrollIntoView({ 
-    behavior: 'instant', 
-    block: 'center' 
-  });
-  
-  return;
-}
-  
-  // Desactivar botón para evitar doble envío
   btnEnviar.disabled = true;
   btnEnviar.textContent = '⏳ Enviando...';
   btnEnviar.style.opacity = '0.6';
@@ -1085,26 +1069,22 @@ async function guardarFormulario(event) {
   
   mostrarCargando('mensajeFormulario');
   
-  // NUEVO: Verificar si el instructor seleccionado ya fue usado en los últimos 90 minutos
   const instructorSeleccionado = document.getElementById('instructor').value;
   
   const verificacion = await verificarRegistroRecenteConInstructor(datosEstudiante.documento, instructorSeleccionado);
   
   if (!verificacion.puedeRegistrar) {
-    const mensajeElement = document.getElementById('mensajeFormulario');
-    
     mostrarMensaje('mensajeFormulario', 
       `Ya tienes una tutoría reciente con este tutor. Podrás registrar otra en ${verificacion.tiempoRestante}, o puedes realizarla con otro tutor si lo prefieres.`, 
       'error');
     
-    // Reactivar botón
     btnEnviar.disabled = false;
     btnEnviar.textContent = 'Enviar Formulario';
     btnEnviar.style.opacity = '1';
     btnEnviar.style.cursor = 'pointer';
     
     setTimeout(() => {
-      mensajeElement.scrollIntoView({ 
+      document.getElementById('mensajeFormulario').scrollIntoView({ 
         behavior: 'smooth', 
         block: 'center' 
       });
@@ -1113,7 +1093,6 @@ async function guardarFormulario(event) {
     return;
   }
 
-  // Obtener asignatura (puede ser personalizada)
   let asignatura = document.getElementById('asignatura').value;
   if (asignatura === 'Otra') {
     asignatura = document.getElementById('otraAsignatura').value.trim().toUpperCase();
@@ -1127,12 +1106,10 @@ async function guardarFormulario(event) {
     }
   }
 
-  // Obtener tema (puede ser personalizado)
   const selectTema = document.getElementById('tema');
   const inputTema = document.getElementById('otroTema');
   let tema = '';
 
-  // Caso 1: Select visible y con valor "Otro"
   if (selectTema.value === 'Otro') {
     tema = inputTema.value.trim().toUpperCase();
     if (!tema) {
@@ -1144,7 +1121,6 @@ async function guardarFormulario(event) {
       return;
     }
   }
-  // Caso 2: Select oculto (no hay temas en BD o asignatura es "Otra")
   else if (selectTema.style.display === 'none') {
     tema = inputTema.value.trim().toUpperCase();
     if (!tema) {
@@ -1156,7 +1132,6 @@ async function guardarFormulario(event) {
       return;
     }
   }
-  // Caso 3: Select visible con tema normal seleccionado
   else {
     tema = selectTema.value;
   }
@@ -1166,12 +1141,10 @@ async function guardarFormulario(event) {
     ? document.getElementById('tituloCurso').value.toUpperCase() 
     : null;
   
-  // Obtener fecha y hora actual en Colombia (UTC-5)
   const ahora = new Date();
   const fechaColombia = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
   const fechaISO = fechaColombia.toISOString();
   
-  // Obtener el valor de facultad_departamento (puede estar vacío si es tutor)
   const facultadDepartamentoValue = document.getElementById('facultadDepartamento').value || null;
   
   const datos = {
@@ -1225,7 +1198,6 @@ async function guardarFormulario(event) {
     }, 3000);
   } catch (error) {
     mostrarMensaje('mensajeFormulario', error.message, 'error');
-    // Reactivar botón si hay error
     btnEnviar.disabled = false;
     btnEnviar.textContent = 'Enviar Formulario';
     btnEnviar.style.opacity = '1';
