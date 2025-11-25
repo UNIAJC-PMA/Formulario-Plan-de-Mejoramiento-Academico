@@ -426,7 +426,7 @@ function mostrarConfirmacion() {
   
   const nombreCompleto = `${primerNombre} ${segundoNombre} ${primerApellido} ${segundoApellido}`.replace(/\s+/g, ' ');
   const semestre = document.getElementById('regSemestre').value;
-  const grupo = document.getElementById('regGrupo').value;
+  const grupo = document.getElementById('regGrupo').value.toUpperCase();
 
   const html = `
     <div class="confirmation-item">
