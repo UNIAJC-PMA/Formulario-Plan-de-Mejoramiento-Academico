@@ -1362,15 +1362,10 @@ async function actualizarDatosEstudiante(event) {
   mostrarCargando('mensajeActualizacion');
   
   try {
-    // 🕐 OBTENER FECHA EN COLOMBIA
+    // Fecha en Colombia (UTC-5)
     const fechaColombiaISO = new Date(Date.now() - (5 * 60 * 60 * 1000)).toISOString();
     
-    console.log('🕐 Fecha a guardar:', fechaColombiaISO);
-    console.log('📋 Documento del estudiante:', estudianteActualizando.documento);
-    console.log('📋 Semestre nuevo:', nuevoSemestre);
-    console.log('📋 Grupo nuevo:', nuevoGrupo);
-    
-    // ✅ ACTUALIZAR EN LA BASE DE DATOS DIRECTAMENTE
+    // Actualizar en Supabase
     const url = `${SUPABASE_URL}/rest/v1/estudiantes?documento=eq.${estudianteActualizando.documento}`;
     
     const response = await fetch(url, {
@@ -1388,21 +1383,14 @@ async function actualizarDatosEstudiante(event) {
       })
     });
     
-    console.log('📡 Status HTTP:', response.status);
-    
     if (!response.ok) {
       throw new Error('Error al actualizar en la base de datos');
     }
     
-    const datosActualizados = await response.json();
-    console.log('✅ DATOS ACTUALIZADOS EN BD:', datosActualizados);
+    const resultado = await response.json();
+    console.log('✅ Datos actualizados:', resultado);
     
-    // ✅ ACTUALIZAR VARIABLE GLOBAL CON NUEVOS DATOS
-    estudianteActualizando.semestre = nuevoSemestre;
-    estudianteActualizando.grupo = nuevoGrupo;
-    estudianteActualizando.fecha_actualizacion = fechaColombiaISO;
-    
-    // Continuar con el login normal
+    // Continuar con el login
     const nombres = `${estudianteActualizando.primer_nombre} ${estudianteActualizando.segundo_nombre || ''}`.trim();
     const apellidos = `${estudianteActualizando.primer_apellido} ${estudianteActualizando.segundo_apellido}`.trim();
     const nombreCompleto = `${nombres} ${apellidos}`;
@@ -1426,14 +1414,11 @@ async function actualizarDatosEstudiante(event) {
     actualizarBotonCerrarSesion();
     actualizarProgreso(1);
     
-    console.log('✅ SESIÓN INICIADA CON DATOS ACTUALIZADOS');
-    
   } catch (error) {
-    console.error('❌ ERROR COMPLETO:', error);
+    console.error('❌ Error:', error);
     mostrarMensaje('mensajeActualizacion', 'Error al actualizar: ' + error.message, 'error');
   }
 }
-
 function cerrarSesion() {
   datosEstudiante = null;
   instructorActual = null;
