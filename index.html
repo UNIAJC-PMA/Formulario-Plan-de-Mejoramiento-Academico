@@ -294,6 +294,57 @@
       </form>
     </div>
 
+<!-- PANTALLA DE ACTUALIZACIÓN DE DATOS -->
+    <div id="pantallaActualizacion" class="hidden">
+      <h2 class="section-title">Actualizar Información</h2>
+      
+      <div class="user-greeting">
+        <p id="nombreEstudianteActualizacion"></p>
+      </div>
+      
+      <div class="alert-box">
+        <strong>Es momento de actualizar tus datos</strong>
+        Han pasado más de 2 minutos desde tu última actualización. Por favor actualiza tu semestre y grupo académico antes de continuar.
+      </div>
+      
+      <div id="mensajeActualizacion"></div>
+      
+      <form id="formActualizacion" onsubmit="actualizarDatosEstudiante(event)">
+        <div class="form-group">
+          <label>Semestre actual *</label>
+          <select id="actualizarSemestre" required>
+            <option value="">Seleccione el semestre</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Grupo Académico *</label>
+          <input type="text" id="actualizarGrupo" required class="uppercase-input" placeholder="Ej: B1303A, 2303A" oninput="this.value = this.value.replace(/[^A-Za-z0-9-]/g, '')" onblur="limpiarEspacios(this)">
+        </div>
+        
+        <button type="submit" class="btn">Actualizar y Continuar</button>
+        <button type="button" class="btn btn-secondary" onclick="volverInicio()">Cancelar</button>
+      </form>
+      
+      <div class="alert-box" style="margin-top: 20px; background: #e8f4fd; border-color: #1e3c72;">
+        <strong>💡 Nota:</strong>
+        Solo necesitas actualizar el semestre y grupo académico.
+      </div>
+    </div>
+    
+    
     <!-- FORMULARIO DE TUTORÍA -->
     <div id="pantallaFormulario" class="hidden">
   <h2 class="section-title">Registro de Asistencia</h2>
