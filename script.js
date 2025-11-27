@@ -11,6 +11,9 @@ let graficoTutorias = null;
 // Variable para controlar la página actual del formulario
 let paginaFormularioActual = 1;
 
+// NUEVO: Variable para el estudiante que está actualizando
+let estudianteActualizando = null;
+
 // Cache de datos precargados
 const datosCache = {
   facultadesCarreras: [],
@@ -534,7 +537,8 @@ const datos = {
     programa: document.getElementById('regPrograma').value,
     sede: document.getElementById('regSede').value,
     semestre: parseInt(document.getElementById('regSemestre').value),
-    grupo: document.getElementById('regGrupo').value.toUpperCase()
+    grupo: document.getElementById('regGrupo').value.toUpperCase(),
+    fecha_actualizacion: new Date().toISOString()  // ← AGREGAR ESTA LÍNEA
   };
 
   try {
@@ -615,6 +619,17 @@ async function iniciarSesion(event) {
     }
 
     const estudiante = data[0];
+    
+    // NUEVO: Verificar si necesita actualizar datos
+    const necesitaActualizacion = verificarActualizacionSemestral(estudiante);
+    
+    if (necesitaActualizacion) {
+      estudianteActualizando = estudiante;
+      mostrarFormularioActualizacion(estudiante);
+      return;
+    }
+
+    // Continuar con el flujo normal
     const nombres = `${estudiante.primer_nombre} ${estudiante.segundo_nombre || ''}`.trim();
     const apellidos = `${estudiante.primer_apellido} ${estudiante.segundo_apellido}`.trim();
     const nombreCompleto = `${nombres} ${apellidos}`;
@@ -1266,6 +1281,131 @@ const datos = {
     btnEnviar.style.cursor = 'pointer';
   }
 }
+
+// ===================================
+// ACTUALIZACIÓN DE DATOS SEMESTRALES
+// ===================================
+
+// ⏱️ CONFIGURACIÓN TEMPORAL PARA PRUEBAS: 2 MINUTOS
+// 📅 Para cambiar a fechas específicas, ver instrucciones al final del archivo
+function verificarActualizacionSemestral(estudiante) {
+  // Si no hay fecha de última actualización, usar fecha de creación o considerar que necesita actualizar
+  if (!estudiante.fecha_actualizacion && !estudiante.created_at) {
+    return true; // Primera vez, pedir actualización
+  }
+  
+  const ultimaActualizacion = estudiante.fecha_actualizacion 
+    ? new Date(estudiante.fecha_actualizacion) 
+    : new Date(estudiante.created_at);
+  
+  const ahora = new Date();
+  
+  // ⏱️ PARA PRUEBAS: 2 MINUTOS (120 segundos)
+  const segundosTranscurridos = (ahora - ultimaActualizacion) / 1000;
+  const LIMITE_SEGUNDOS = 120; // 2 minutos
+  
+  console.log(`🕐 Tiempo transcurrido: ${Math.floor(segundosTranscurridos)} segundos de ${LIMITE_SEGUNDOS}`);
+  
+  return segundosTranscurridos > LIMITE_SEGUNDOS;
+  
+  // 📅 PARA PRODUCCIÓN: DESCOMENTAR ESTAS LÍNEAS Y COMENTAR LAS DE ARRIBA
+  /*
+  const mesesTranscurridos = (ahora - ultimaActualizacion) / (1000 * 60 * 60 * 24 * 30);
+  const LIMITE_MESES = 4; // 4 meses
+  
+  console.log(`📅 Meses transcurridos: ${mesesTranscurridos.toFixed(1)} de ${LIMITE_MESES}`);
+  
+  return mesesTranscurridos > LIMITE_MESES;
+  */
+}
+
+function mostrarFormularioActualizacion(estudiante) {
+  mostrarPantalla('pantallaActualizacion');
+  document.getElementById('mensajeActualizacion').innerHTML = '';
+  
+  // Pre-llenar con datos actuales (SOLO semestre y grupo)
+  document.getElementById('actualizarSemestre').value = estudiante.semestre || '';
+  document.getElementById('actualizarGrupo').value = estudiante.grupo || '';
+  
+  // Mostrar nombre censurado
+  const nombres = `${estudiante.primer_nombre} ${estudiante.segundo_nombre || ''}`.trim();
+  const apellidos = `${estudiante.primer_apellido} ${estudiante.segundo_apellido}`.trim();
+  const nombreCompleto = `${nombres} ${apellidos}`;
+  document.getElementById('nombreEstudianteActualizacion').textContent = censurarNombre(nombreCompleto);
+}
+
+async function actualizarDatosEstudiante(event) {
+  event.preventDefault();
+  
+  if (!estudianteActualizando) {
+    mostrarMensaje('mensajeActualizacion', 'Error: No se encontró el estudiante', 'error');
+    return;
+  }
+  
+  const nuevoSemestre = parseInt(document.getElementById('actualizarSemestre').value);
+  const nuevoGrupo = document.getElementById('actualizarGrupo').value.toUpperCase().trim();
+  
+  if (!nuevoSemestre || !nuevoGrupo) {
+    mostrarMensaje('mensajeActualizacion', 'Por favor complete todos los campos', 'error');
+    return;
+  }
+  
+  mostrarCargando('mensajeActualizacion');
+  
+  try {
+    // Actualizar SOLO semestre y grupo en la base de datos
+    const url = `${SUPABASE_URL}/rest/v1/estudiantes?documento=eq.${estudianteActualizando.documento}`;
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        semestre: nuevoSemestre,
+        grupo: nuevoGrupo,
+        fecha_actualizacion: new Date().toISOString()
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al actualizar los datos');
+    }
+    
+    // Continuar con el login normal con datos actualizados
+    const nombres = `${estudianteActualizando.primer_nombre} ${estudianteActualizando.segundo_nombre || ''}`.trim();
+    const apellidos = `${estudianteActualizando.primer_apellido} ${estudianteActualizando.segundo_apellido}`.trim();
+    const nombreCompleto = `${nombres} ${apellidos}`;
+    
+    datosEstudiante = {
+      documento: estudianteActualizando.documento,
+      nombres: nombres,
+      apellidos: apellidos,
+      nombreCensurado: censurarNombre(nombreCompleto),
+      facultad: estudianteActualizando.facultad,
+      programa: estudianteActualizando.programa,
+      sede: estudianteActualizando.sede, // ← MANTIENE LA SEDE ORIGINAL
+      semestre: nuevoSemestre,          // ← ACTUALIZADO
+      grupo: nuevoGrupo                 // ← ACTUALIZADO
+    };
+    
+    formularioEnviandose = false;
+    mostrarPantalla('pantallaFormulario');
+    document.getElementById('nombreUsuario').textContent = 'Bienvenido(a): ' + datosEstudiante.nombreCensurado;
+    document.getElementById('mensajeFormulario').innerHTML = '';
+    actualizarBotonCerrarSesion();
+    actualizarProgreso(1);
+    
+    console.log('✅ Semestre y grupo actualizados correctamente');
+    
+  } catch (error) {
+    mostrarMensaje('mensajeActualizacion', 'Error al actualizar: ' + error.message, 'error');
+  }
+}
+
 
 function cerrarSesion() {
   datosEstudiante = null;
