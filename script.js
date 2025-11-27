@@ -1366,23 +1366,14 @@ async function actualizarDatosEstudiante(event) {
     const fechaColombiaISO = new Date(Date.now() - (5 * 60 * 60 * 1000)).toISOString();
     
     console.log('🕐 Fecha a guardar:', fechaColombiaISO);
-    console.log('📋 Datos a actualizar:', {
-      documento: estudianteActualizando.documento,
-      semestre: nuevoSemestre,
-      grupo: nuevoGrupo,
-      fecha_actualizacion: fechaColombiaISO
-    });
+    console.log('📋 Documento del estudiante:', estudianteActualizando.documento);
+    console.log('📋 Semestre nuevo:', nuevoSemestre);
+    console.log('📋 Grupo nuevo:', nuevoGrupo);
     
-    // ✅ ACTUALIZAR EN LA BASE DE DATOS
+    // ✅ ACTUALIZAR EN LA BASE DE DATOS DIRECTAMENTE
     const url = `${SUPABASE_URL}/rest/v1/estudiantes?documento=eq.${estudianteActualizando.documento}`;
     
-    const datosActualizar = {
-      semestre: nuevoSemestre,
-      grupo: nuevoGrupo,
-      fecha_actualizacion: fechaColombiaISO
-    };
-    
-    const response = await fetchConReintentos(url, {
+    const response = await fetch(url, {
       method: 'PATCH',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -1390,18 +1381,26 @@ async function actualizarDatosEstudiante(event) {
         'Content-Type': 'application/json',
         'Prefer': 'return=representation'
       },
-      body: JSON.stringify(datosActualizar)
+      body: JSON.stringify({
+        semestre: nuevoSemestre,
+        grupo: nuevoGrupo,
+        fecha_actualizacion: fechaColombiaISO
+      })
     });
     
-    console.log('📡 Status de respuesta:', response.status);
-    console.log('✅ Actualización exitosa en BD:', response);
+    console.log('📡 Status HTTP:', response.status);
     
-    // Verificar en la base de datos que se actualizó
-    const verificacion = await supabaseQuery('estudiantes', {
-      eq: { field: 'documento', value: estudianteActualizando.documento }
-    });
+    if (!response.ok) {
+      throw new Error('Error al actualizar en la base de datos');
+    }
     
-    console.log('🔍 Verificación de actualización:', verificacion[0]);
+    const datosActualizados = await response.json();
+    console.log('✅ DATOS ACTUALIZADOS EN BD:', datosActualizados);
+    
+    // ✅ ACTUALIZAR VARIABLE GLOBAL CON NUEVOS DATOS
+    estudianteActualizando.semestre = nuevoSemestre;
+    estudianteActualizando.grupo = nuevoGrupo;
+    estudianteActualizando.fecha_actualizacion = fechaColombiaISO;
     
     // Continuar con el login normal
     const nombres = `${estudianteActualizando.primer_nombre} ${estudianteActualizando.segundo_nombre || ''}`.trim();
@@ -1427,10 +1426,10 @@ async function actualizarDatosEstudiante(event) {
     actualizarBotonCerrarSesion();
     actualizarProgreso(1);
     
-    console.log('✅ Sesión iniciada con datos actualizados');
+    console.log('✅ SESIÓN INICIADA CON DATOS ACTUALIZADOS');
     
   } catch (error) {
-    console.error('❌ Error completo:', error);
+    console.error('❌ ERROR COMPLETO:', error);
     mostrarMensaje('mensajeActualizacion', 'Error al actualizar: ' + error.message, 'error');
   }
 }
