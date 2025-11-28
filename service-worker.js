@@ -1,41 +1,38 @@
 // ===================================
-// SERVICE WORKER PARA NOTIFICACIONES PUSH
+// SERVICE WORKER PARA NOTIFICACIONES PUSH - PMA
 // ===================================
 
-const VERSION = '1.0.0';
+// Versión del Service Worker
+const VERSION = 'v1.0.0';
 const CACHE_NAME = `pma-cache-${VERSION}`;
 
 // ===================================
-// EVENTO: Instalación del Service Worker
+// INSTALACIÓN
 // ===================================
 self.addEventListener('install', (event) => {
-  console.log('[SW] Instalando Service Worker versión:', VERSION);
-  
-  // Activar inmediatamente sin esperar
+  console.log('✅ Service Worker instalado:', VERSION);
+  // Activar inmediatamente
   self.skipWaiting();
 });
 
 // ===================================
-// EVENTO: Activación del Service Worker
+// ACTIVACIÓN
 // ===================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Service Worker activado');
-  
+  console.log('✅ Service Worker activado:', VERSION);
   // Tomar control de todas las páginas inmediatamente
-  event.waitUntil(
-    self.clients.claim()
-  );
+  event.waitUntil(self.clients.claim());
 });
 
 // ===================================
-// EVENTO: Recibir notificación push
+// RECIBIR NOTIFICACIÓN PUSH
 // ===================================
 self.addEventListener('push', (event) => {
-  console.log('[SW] Notificación push recibida');
-
-  let notificacion = {
-    title: 'PMA - Programa de Mejoramiento Académico',
-    body: 'Nueva notificación del PMA',
+  console.log('📩 Notificación push recibida');
+  
+  let notificationData = {
+    title: 'PMA - Notificación',
+    body: 'Tienes una nueva notificación del Programa de Mejoramiento Académico',
     icon: 'https://vkfjttukyrtiumzfmyuk.supabase.co/storage/v1/object/public/img/LOGO.png',
     badge: 'https://vkfjttukyrtiumzfmyuk.supabase.co/storage/v1/object/public/img/LOGO.png',
     data: {
@@ -43,87 +40,75 @@ self.addEventListener('push', (event) => {
     }
   };
 
-  // Si viene con datos personalizados, usarlos
+  // Si viene data en el push, usarla
   if (event.data) {
     try {
       const payload = event.data.json();
-      notificacion = {
-        ...notificacion,
-        ...payload
+      notificationData = {
+        title: payload.title || notificationData.title,
+        body: payload.body || notificationData.body,
+        icon: payload.icon || notificationData.icon,
+        badge: payload.badge || notificationData.badge,
+        data: {
+          url: payload.url || '/'
+        }
       };
-    } catch (error) {
-      console.log('[SW] Usando notificación por defecto');
+    } catch (e) {
+      console.error('Error al parsear payload:', e);
     }
   }
 
-  const promesaMostrar = self.registration.showNotification(notificacion.title, {
-    body: notificacion.body,
-    icon: notificacion.icon,
-    badge: notificacion.badge,
-    tag: 'pma-notification',
-    requireInteraction: false,
-    vibrate: [200, 100, 200],
-    data: notificacion.data
-  });
-
-  event.waitUntil(promesaMostrar);
+  event.waitUntil(
+    self.registration.showNotification(notificationData.title, {
+      body: notificationData.body,
+      icon: notificationData.icon,
+      badge: notificationData.badge,
+      vibrate: [200, 100, 200],
+      data: notificationData.data,
+      requireInteraction: false,
+      tag: 'pma-notification'
+    })
+  );
 });
 
 // ===================================
-// EVENTO: Click en notificación
+// CLICK EN NOTIFICACIÓN
 // ===================================
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Click en notificación');
-
+  console.log('🖱️ Click en notificación');
+  
   event.notification.close();
 
-  // URL a la que redirigir (puede venir en los datos de la notificación)
-  const urlDestino = event.notification.data?.url || '/';
+  const urlToOpen = event.notification.data?.url || '/';
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Si ya hay una pestaña abierta, enfocarla
-        for (const client of clientList) {
-          if (client.url === self.registration.scope + urlDestino.substring(1) && 'focus' in client) {
+        // Buscar si ya hay una ventana abierta
+        for (let client of clientList) {
+          if (client.url.includes(self.location.origin) && 'focus' in client) {
             return client.focus();
           }
         }
-        
-        // Si no hay pestaña abierta, abrir una nueva
-        if (self.clients.openWindow) {
-          return self.clients.openWindow(urlDestino);
+        // Si no hay ventana abierta, abrir una nueva
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
         }
       })
   );
 });
 
 // ===================================
-// EVENTO: Error en push
+// CERRAR NOTIFICACIÓN
 // ===================================
-self.addEventListener('pushsubscriptionchange', (event) => {
-  console.log('[SW] Suscripción push cambió');
-  
-  // Aquí puedes renovar la suscripción si es necesario
-  event.waitUntil(
-    self.registration.pushManager.subscribe({
-      userVisibleOnly: true
-    }).then((subscription) => {
-      console.log('[SW] Nueva suscripción creada:', subscription);
-      // Aquí deberías enviar la nueva suscripción a Supabase
-    })
-  );
+self.addEventListener('notificationclose', (event) => {
+  console.log('❌ Notificación cerrada');
 });
 
 // ===================================
-// EVENTO: Mensaje desde el cliente
+// FETCH (Opcional - para offline)
 // ===================================
-self.addEventListener('message', (event) => {
-  console.log('[SW] Mensaje recibido del cliente:', event.data);
-
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+self.addEventListener('fetch', (event) => {
+  // No interceptar fetch por ahora, solo manejar notificaciones
+  return;
 });
-
-console.log('[SW] Service Worker cargado correctamente');
