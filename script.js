@@ -191,7 +191,23 @@ function limpiarEspacios(input) {
   }
 }
 
-
+// ===================================
+// TOGGLE NOTIFICACIONES
+// ===================================
+function toggleNotificaciones() {
+  const sede = document.getElementById('regSede').value;
+  const grupoNotificaciones = document.getElementById('grupoNotificaciones');
+  const selectNotificaciones = document.getElementById('regNotificaciones');
+  
+  if (sede === 'Norte') {
+    grupoNotificaciones.classList.remove('hidden');
+    selectNotificaciones.setAttribute('required', 'required');
+  } else {
+    grupoNotificaciones.classList.add('hidden');
+    selectNotificaciones.removeAttribute('required');
+    selectNotificaciones.value = '';
+  }
+}
 
 // ===================================
 // FUNCIONES DE NAVEGACIÓN
@@ -538,6 +554,7 @@ const datos = {
     sede: document.getElementById('regSede').value,
     semestre: parseInt(document.getElementById('regSemestre').value),
     grupo: document.getElementById('regGrupo').value.toUpperCase(),
+    notificaciones: document.getElementById('regSede').value === 'Norte' ? document.getElementById('regNotificaciones').value : null,
     fecha_actualizacion: new Date(Date.now() - (5 * 60 * 60 * 1000)).toISOString()
   };
 
