@@ -39,16 +39,13 @@ background-position: center, left center, right top;
   animation: fadeIn 0.4s ease;
 }
 
-/* Panel admin sin límite de ancho en PC */
+/* Panel de Administración más ancho SOLO en PC */
 @media (min-width: 769px) {
-  #pantallaAdmin.container,
-  div.container:has(> #pantallaAdmin) {
-    max-width: none;
-    width: 95%;
+  .container-admin {
+    max-width: 95vw !important;
+    width: 95vw !important;
   }
 }
-
-
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-10px); }
