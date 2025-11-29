@@ -565,16 +565,16 @@ async function registrarEstudiante(event) {
     try {
       const resultado = await supabaseInsert('estudiantes', datos);
       
-if (resultado && resultado.length > 0) {
-  // ✅ Suscribir a notificaciones push si aceptó
-  if (datos.notificaciones === 'Si') {
-    console.log('📱 Intentando suscribir a notificaciones...');
-    const suscrito = await suscribirNotificaciones(doc);
-    
-    if (!suscrito) {
-      console.log('⚠️ No se pudo completar la suscripción, pero el registro fue exitoso');
-    }
-  }
+      if (resultado && resultado.length > 0) {
+        // ✅ NUEVO: Suscribir a notificaciones push si aceptó
+        if (datos.notificaciones === 'Si') {
+          try {
+            await suscribirNotificaciones(doc);
+          } catch (error) {
+            console.error('Error al suscribir notificaciones:', error);
+            // No bloqueamos el registro si falla la suscripción
+          }
+        }
         
         document.getElementById('mensajeRegistro').innerHTML = '';
         
@@ -609,43 +609,39 @@ if (resultado && resultado.length > 0) {
 // ===================================
 async function suscribirNotificaciones(documento) {
   try {
-    console.log('🔔 Suscribiendo a notificaciones...');
+    console.log('🔔 Iniciando suscripción a notificaciones...');
     
-    // Esperar a que OneSignal esté listo
-    await new Promise((resolve) => {
-      if (window.oneSignalInitialized) {
-        resolve();
-      } else {
-        const interval = setInterval(() => {
-          if (window.oneSignalInitialized) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 100);
-      }
-    });
-    
-    // Configurar tags
-    OneSignal.User.addTag('documento', documento);
-    OneSignal.User.addTag('acepta_notificaciones', 'Si');
-    
-    // Solicitar permiso
-    const permission = await Notification.requestPermission();
-    
-    if (permission === 'granted') {
-      console.log('✅ Notificaciones activadas');
-      return true;
-    } else {
-      console.log('❌ Notificaciones rechazadas');
-      return false;
+    // Verificar que OneSignal esté cargado
+    if (typeof OneSignal === 'undefined') {
+      console.error('❌ OneSignal no está cargado');
+      return;
     }
     
+    // Solicitar permiso para notificaciones
+    await OneSignal.Slidedown.promptPush();
+    
+    // Esperar a que el usuario acepte
+    const isPushEnabled = await OneSignal.User.PushSubscription.optedIn;
+    
+    if (isPushEnabled) {
+      // Obtener el Player ID (ID único del dispositivo)
+      const playerId = await OneSignal.User.PushSubscription.id;
+      
+      console.log('✅ Suscripción exitosa. Player ID:', playerId);
+      
+      // Asociar el documento del estudiante con el Player ID
+      await OneSignal.User.addTag('documento', documento);
+      await OneSignal.User.addTag('acepta_notificaciones', 'Si');
+      
+      console.log('✅ Tags agregados correctamente');
+    } else {
+      console.log('❌ Usuario rechazó las notificaciones');
+    }
   } catch (error) {
-    console.error('Error:', error);
-    return false;
+    console.error('❌ Error en suscripción:', error);
+    throw error;
   }
 }
-
 
 // ===================================
 // LOGIN
@@ -719,31 +715,24 @@ datosEstudiante = {
       grupo: estudiante.grupo
     };
 
-   // ✅ Manejar notificaciones si el usuario había aceptado previamente
-// Verificar notificaciones
-if (estudiante.notificaciones === 'Si') {
-  try {
-    await new Promise((resolve) => {
-      if (window.oneSignalInitialized) {
-        resolve();
-      } else {
-        const interval = setInterval(() => {
-          if (window.oneSignalInitialized) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 100);
+    // ✅ AGREGAR ESTAS LÍNEAS AQUÍ:
+    // Verificar si el usuario ya había aceptado notificaciones y suscribirlo si es necesario
+    if (estudiante.notificaciones === 'Si') {
+      try {
+        const isPushEnabled = await OneSignal.User.PushSubscription.optedIn;
+        if (!isPushEnabled) {
+          // Si no está suscrito, intentar suscribir
+          await suscribirNotificaciones(estudiante.documento);
+        } else {
+          // Si ya está suscrito, actualizar tags por si acaso
+          await OneSignal.User.addTag('documento', estudiante.documento);
+          await OneSignal.User.addTag('acepta_notificaciones', 'Si');
+        }
+      } catch (error) {
+        console.error('Error al verificar/suscribir notificaciones:', error);
       }
-    });
-    
-    OneSignal.User.addTag('documento', estudiante.documento);
-    OneSignal.User.addTag('acepta_notificaciones', 'Si');
-    console.log('✅ Tags actualizados');
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
-    
+    }
+
     formularioEnviandose = false;
     mostrarPantalla('pantallaFormulario');
     document.getElementById('nombreUsuario').textContent = 'Bienvenido(a): ' + datosEstudiante.nombreCensurado;
