@@ -13,19 +13,30 @@
   OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
       appId: "af1f6666-7815-49df-b39f-b29ca8ecfad2",
-      notifyButton: {
-        enable: false,
-      },
-      allowLocalhostAsSecureOrigin: true,
+      
+      // ⭐ CLAVE: Le decimos explícitamente qué Service Worker usar
+      serviceWorkerPath: '/OneSignalSDKWorker.js',
+      
+      // Desactivar registro automático
       autoRegister: false,
+      
+      // Desactivar prompts automáticos
       promptOptions: {
         slidedown: {
-          enabled: false
+          enabled: false,
+          autoPrompt: false
         }
-      }
+      },
+      
+      // Deshabilitar botón
+      notifyButton: {
+        enable: false
+      },
+      
+      allowLocalhostAsSecureOrigin: true
     });
     
-    // Marcar como inicializado
+    console.log('✅ OneSignal inicializado');
     window.oneSignalInitialized = true;
   });
 </script>
