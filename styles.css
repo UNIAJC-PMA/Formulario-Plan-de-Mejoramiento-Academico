@@ -39,6 +39,15 @@ background-position: center, left center, right top;
   animation: fadeIn 0.4s ease;
 }
 
+/* Panel admin sin límite de ancho en PC */
+@media (min-width: 769px) {
+  #pantallaAdmin.container,
+  div.container:has(> #pantallaAdmin) {
+    max-width: none;
+    width: 95%;
+  }
+}
+
 
 
 @keyframes fadeIn {
@@ -554,13 +563,6 @@ textarea {
   color: #1e3c72;
 }
 
-
-/* Panel de Administración más ancho en PC (pantallas grandes) */
-@media (min-width: 769px) {
-  #pantallaAdmin {
-    max-width: 95vw;
-  }
-}
 
 
 /* ===================================
