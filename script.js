@@ -614,53 +614,64 @@ async function suscribirNotificaciones(documento) {
     // Verificar que OneSignal esté cargado
     if (typeof OneSignal === 'undefined') {
       console.error('❌ OneSignal no está cargado');
-      throw new Error('OneSignal no está disponible');
+      return false;
     }
     
-    // ✅ Esperar a que OneSignal esté completamente inicializado
-    await OneSignal.init();
+    // ✅ NO llamar a init() nuevamente - ya está inicializado
+    // Esperar a que esté listo
+    await new Promise(resolve => {
+      if (window.oneSignalInitialized) {
+        resolve();
+      } else {
+        const checkInterval = setInterval(() => {
+          if (window.oneSignalInitialized) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 100);
+      }
+    });
     
-    // ✅ Configurar los tags ANTES de solicitar permiso
+    console.log('✅ OneSignal está listo');
+    
+    // Configurar los tags ANTES de solicitar permiso
     await OneSignal.User.addTag('documento', documento);
     await OneSignal.User.addTag('acepta_notificaciones', 'Si');
     
-    console.log('✅ Tags configurados correctamente');
+    console.log('✅ Tags configurados');
     
-    // ✅ Solicitar permiso con mensaje personalizado en español
-    const options = {
-      force: true, // Forzar el prompt aunque ya haya sido mostrado
+    // Mostrar el prompt nativo del navegador con el slidedown de OneSignal
+    await OneSignal.Slidedown.promptPush({
+      force: true,
       slidedown: {
         prompts: [{
           type: "push",
           autoPrompt: true,
           text: {
-            actionMessage: "¿Deseas recibir notificaciones del PMA?",
+            actionMessage: "¿Deseas recibir notificaciones del PMA sobre horarios, cambios y novedades?",
             acceptButton: "Sí, acepto",
             cancelButton: "No, gracias"
-          },
-          delay: {
-            pageViews: 1,
-            timeDelay: 0
           }
         }]
       }
-    };
+    });
     
-    // Mostrar el prompt personalizado
-    await OneSignal.Slidedown.promptPush(options);
+    // Esperar un poco para que el usuario responda
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // ✅ Esperar un momento para que el usuario responda
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Verificar si el usuario aceptó
+    // Verificar el resultado
     const permission = await OneSignal.Notifications.permission;
     
     if (permission) {
       console.log('✅ Usuario aceptó las notificaciones');
       
-      // Obtener el ID de suscripción (opcional, para debug)
-      const subscriptionId = await OneSignal.User.PushSubscription.id;
-      console.log('✅ Subscription ID:', subscriptionId);
+      // Intentar obtener el ID (puede no estar disponible inmediatamente)
+      try {
+        const subscriptionId = await OneSignal.User.PushSubscription.id;
+        console.log('✅ Subscription ID:', subscriptionId);
+      } catch (e) {
+        console.log('⚠️ ID de suscripción no disponible aún');
+      }
       
       return true;
     } else {
@@ -670,7 +681,6 @@ async function suscribirNotificaciones(documento) {
     
   } catch (error) {
     console.error('❌ Error en suscripción:', error);
-    // No lanzar error para no bloquear el registro
     return false;
   }
 }
